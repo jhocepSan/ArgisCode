@@ -1,0 +1,13 @@
+<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Name>Python Addin</Name><AddInID>{54a1c464-4994-482b-899a-9644fa2e72f2}</AddInID><Description>New Addin</Description><Version>0.1</Version><Image /><Author>Untitled</Author><Company>Untitled</Company><Date>01/12/2022</Date><Targets><Target name="Desktop" version="10.1" /></Targets><AddIn language="PYTHON" library="positionCursor_addin.py" namespace="positionCursor_addin"><ArcMap>
+    <Commands>
+        <Tool caption="Tool" category="Python Addin" class="ToolClass2" id="positionCursor_addin.tool" image="" message="" tip=""><Help heading="" /></Tool>
+        </Commands>
+    <Extensions>
+        <Extension autoLoad="true" category="Python Addin" class="ExtensionClass9" description="" id="positionCursor_addin.extension10" name="New Extension" productName="New Extension" showInExtensionDialog="true" />
+        </Extensions>
+    <Toolbars>
+        <Toolbar caption="Toolbar" category="Python Addin" id="positionCursor_addin.toolbar" showInitially="true"><Items><Tool refID="positionCursor_addin.tool" /></Items></Toolbar>
+        </Toolbars>
+    <Menus>
+        </Menus>
+    </ArcMap></AddIn></ESRI.Configuration>
