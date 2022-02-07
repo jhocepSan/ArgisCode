@@ -81,7 +81,8 @@ class BusquedaPunto(object):
                     print("Distanica: {}, alfa: {}, pendiente: {}".format(di,alfa,m))
                     #for i in range(2):
                     self.runProg=True
-                    self.busquedaLineal(valorPs,1,nroP)
+                    #self.busquedaLineal(valorPs,1,nroP)
+                    self.busquedaLin(0,puntos[0])
                     #self.clearProg()
                     '''cont=0
                     diP=di
@@ -192,6 +193,55 @@ class BusquedaPunto(object):
                     self.runProg=False
                 n+=1
         print("termino la ejecucion")
+    def busquedaLin(self,sentido,puntoOrigen):
+        n=0
+        while self.runProg:
+            puntos,nroP=self.getSeleccion()
+            if nroP>2:
+                self.valido=False
+                
+            elif nroP==2:
+                self.valido=True
+                _,_,valorPs=self.getPuntos(puntos)
+                if len(valorPs)==2:
+                    for i in valorPs:
+                        if i[0]==puntoOrigen:
+                            self.punto1=i
+                        else:
+                            self.punto2=i
+                    if self.distancia==0:
+                        self.distancia=self.getDistancia(self.punto1[1],self.punto2[1])
+                        self.angulo=self.getAngulo2(self.punto1[1],self.punto2[1])
+                    self.validarAngulo2()
+                    self.runProg=True
+                else:
+                    self.punto1=valorPs[0]
+                    self.runProg=False
+                self.area=0.5
+            elif nroP==1:
+                self.valido=False
+                if self.area<=5:
+                    self.aumentarDistancia(self.distancia+self.area,self.angulo)
+                    self.area+=0.5
+                else:
+                    self.area=0.5
+                    n=1000
+                    self.runProg=False
+            if self.valido:
+                self.setNroLine(self.punto1[0],self.nrLinea)
+                print("Punto1: {} , Punto2: {}".format(self.punto1,self.punto2))
+                print("D = {} alfa= {}".format(self.distancia,self.angulo))
+                puntoNew,puntoAntiguo=self.getPuntoSugerido2(self.punto2,self.distancia,self.angulo)
+                print("PuntoNew: {} , PuntoOld: {}".format(puntoNew,puntoAntiguo))
+                self.colocarPunto(puntoNew,puntoAntiguo)
+                if self.dentroDeArea("1065_san_jorge_desechos_depurados","auxiliar") or self.dentroDeArea("1065_san_jorge_caminos","auxiliar") or self.dentroDeArea("1065_san_jorge_area_nocultivable","auxiliar"):
+                    print("dentro de un area no ejecutable")
+                    self.limpiarAux()
+                    n=10000
+                    self.runProg=False
+                n+=1
+        print("termino la ejecucion")
+
     def busquedaLineal(self,puntos,sentido,nroPo):
         puntosSel=puntos
         self.punto1=puntos[0]
@@ -255,6 +305,18 @@ class BusquedaPunto(object):
                         self.runProg=False
                         print("Son tres puntos")
                     
+    def getPuntoSugerido2(self,punto,d,alfa):
+        xa=punto[1][0]+d*math.cos(alfa)
+        ya=punto[1][1]+d*math.sin(alfa)
+        self.agregarPunto((xa,ya))
+        puntos,nrp=self.getSeleccion()
+        for i in puntos:
+            if i==punto[0]:
+                tita=self.getAngulo2(self.punto2,self.punto1)
+                xa=punto[1][0]+d*math.cos(tita)
+                ya=punto[1][1]+d*math.sin(tita)
+        return (xa,ya),self.punto2[1]
+
     def getPuntovalido(self,punto1,punto2,d,alfa):
         xa=punto2[0]+d*math.cos(alfa)
         ya=punto2[1]+d*math.sin(alfa)
@@ -267,16 +329,22 @@ class BusquedaPunto(object):
         else:
             return (xa,ya),punto2
     def getAngulo2(self,pa,pb):
-        alfa=math.atan2(pa[1]-pb[1],pa[0]-pb[0])
+        alfa=math.atan2(pb[1]-pa[1],pb[0]-pa[0])
         return alfa
     def limpiarAux(self):
         arcpy.DeleteFeatures_management("auxiliar")
+    def validarAngulo2(self):
+        anguloNuevo=self.getAngulo2(self.punto1[1],self.punto2[1])
+        if abs(anguloNuevo-self.angulo)<=0.2:
+            print("cambie de angulo")
+            self.angulo=self.getAngulo2(self.punto1[1],self.punto2[1])
     def validarAngulo(self,tipo):
         anguloNuevo=self.getAngulo(self.punto1,self.punto2,tipo)
         if abs(anguloNuevo-self.angulo)<=0.2:
             self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
     def aumentarDistancia(self,distancia,angulo):
         xa=self.punto1[0]+distancia*math.cos(angulo)
+        ya=self.punto1[1]+distancia*math.cos(angulo)
         print("puntoNuevo segun1 aumentado distancia= {}".format((xa,ya)))
         self.colocarPunto((xa,ya),self.punto1)
     def colocarPunto(self,puntoNew,puntoAntiguo):
