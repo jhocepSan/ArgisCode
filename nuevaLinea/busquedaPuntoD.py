@@ -79,11 +79,11 @@ class BusquedaPunto(object):
                     alfa=self.getAngulo(valorPs[0][1],valorPs[1][1],0)
                     m=self.getPendiente(valorPs[0][1],valorPs[1][1])
                     print("Distanica: {}, alfa: {}, pendiente: {}".format(di,alfa,m))
-                    for i in range(2):
-                        self.runProg=True
-                        self.busquedaLineal(valorPs,1,nroP)
-                        self.clearProg()
-                    cont=0
+                    #for i in range(2):
+                    self.runProg=True
+                    self.busquedaLineal(valorPs,1,nroP)
+                    #self.clearProg()
+                    '''cont=0
                     diP=di
                     while cont<=5:
                         a=self.getPuntoParalelo(valorPs[1][1],diP,m,1)
@@ -111,7 +111,7 @@ class BusquedaPunto(object):
                             if len(b)!=0 and len(a)!=0:
                                 self.nrLinea+=1
                                 cont=100
-                                self.colocarPunto(a,b)
+                                self.colocarPunto(a,b)'''
                          
     def getPendiente(self,punto1,punto2):
         m= (punto2[1]-punto1[1])/(punto2[0]-punto1[0])
@@ -197,17 +197,18 @@ class BusquedaPunto(object):
         self.punto1=puntos[0]
         self.punto2=puntos[1]
         nroP=nroPo
-        print("punto1: {}, punto2: {}".format(self.punto1,self.punto2))
-        print("{}...{}".format(type(self.punto1),type(self.punto2)))
+        offset=0
         d=self.getDistancia(self.punto1[1],self.punto2[1])
         alfa=self.getAngulo2(self.punto1[1],self.punto2[1])
         while self.runProg:
+            print("punto1: {}, punto2: {}".format(self.punto1,self.punto2))
             print("distancia: {} , angulo: {}".format(d,alfa))
             if nroP==2:
                 self.setNroLine(self.punto1[0],self.nrLinea)
                 self.valido=True
             if self.valido:
-                puntoNew,puntoAn=self.getPuntovalido(self.punto1[1],self.punto2[1],d,alfa)
+                puntoNew,puntoAn=self.getPuntovalido(self.punto1[1],self.punto2[1],d+offset,alfa)
+                print("new p: {} , punto An: {}".format(puntoNew,puntoAn))
                 self.colocarPunto(puntoNew,puntoAn)
                 if self.dentroDeArea("1065_san_jorge_desechos_depurados","auxiliar") or self.dentroDeArea("1065_san_jorge_caminos","auxiliar") or self.dentroDeArea("1065_san_jorge_area_nocultivable","auxiliar"):
                     print("Esta dentro de un area")                     
@@ -216,17 +217,55 @@ class BusquedaPunto(object):
                 else:
                     puntosA,nroP=self.getSeleccion()
                     _,_,puntosSel=self.getPuntos(puntosA)
-                    self.punto1=self.punto2
+                    if nroP==1:
+                        offset+=0.3
+                    elif nroP==2:
+                        offset=0
+                        if len(puntosSel)==2:
+                            for i in puntosSel:
+                                print(i)
+                                if i[1][0]==self.punto2[1][0] and i[1][1]==self.punto2[1][1]:
+                                    print("Ya es igual")
+                                    self.punto1=self.punto2
+                                else:
+                                    self.punto2=i
+                            alfan=self.getAngulo2(self.punto1[1],self.punto2[1])
+                            if abs(alfan-alfa)<=0.2:
+                                alfa=alfan
+                        else:
+                            self.setNroLine(self.punto1[0],0)
+                            alfa=self.getAngulo2(self.punto2[1],self.punto1[1])
+                            puntoNew,puntoAn=self.getPuntovalido(self.punto1[1],self.punto2[1],d+offset,alfa)
+                            print("new p: {} , punto An: {}".format(puntoNew,puntoAn))
+                            self.colocarPunto(puntoNew,puntoAn)
+                            puntosA,nroP=self.getSeleccion()
+                            _,_,puntosSel=self.getPuntos(puntosA)
+                            for i in puntosSel:
+                                print(i)
+                                if i[1][0]==self.punto2[1][0] and i[1][1]==self.punto2[1][1]:
+                                    print("Ya es igual")
+                                    self.punto1=self.punto2
+                                else:
+                                    self.punto2=i
+                            alfan=self.getAngulo2(self.punto1[1],self.punto2[1])
+                            if abs(alfan-alfa)<=0.2:
+                                alfa=alfan
+                            self.runProg=True
+                    elif nroP>=3:
+                        self.runProg=False
+                        print("Son tres puntos")
                     
-                    #self.runProg=False
     def getPuntovalido(self,punto1,punto2,d,alfa):
         xa=punto2[0]+d*math.cos(alfa)
         ya=punto2[1]+d*math.sin(alfa)
-        if (xa,ya)==punto1:
+        if (int(xa),int(ya))==(int(punto1[0]),int(punto1[1])):
+            print("Nuevo angulo inverso")
             alfa=self.getAngulo2(punto2,punto1)
-            return self.getPuntovalido(punto1,punto2,d,alfa)
+            xa=punto2[0]+d*math.cos(alfa)
+            ya=punto2[1]+d*math.sin(alfa)
+            return (xa,ya),punto2
         else:
-            return punto2,(xa,ya)
+            return (xa,ya),punto2
     def getAngulo2(self,pa,pb):
         alfa=math.atan2(pa[1]-pb[1],pa[0]-pb[0])
         return alfa
