@@ -81,7 +81,9 @@ class BusquedaPunto(object):
                     print("Distanica: {}, alfa: {}, pendiente: {}".format(di,alfa,m))
                     #for i in range(2):
                     self.runProg=True
+                    self.runBusqueda(0)
                     #self.busquedaLineal(valorPs,1,nroP)
+                    #print("Busqueda lineal Activado")
                     self.busquedaLin(0,puntos[0])
                     #self.clearProg()
                     '''cont=0
@@ -203,16 +205,19 @@ class BusquedaPunto(object):
             elif nroP==2:
                 self.valido=True
                 _,_,valorPs=self.getPuntos(puntos)
+                print("Los puntos son {}".format(valorPs))
                 if len(valorPs)==2:
                     for i in valorPs:
+                        print(i)
                         if i[0]==puntoOrigen:
                             self.punto1=i
+                            self.setNroLine(self.punto1[0],self.nrLinea)
                         else:
                             self.punto2=i
                     if self.distancia==0:
                         self.distancia=self.getDistancia(self.punto1[1],self.punto2[1])
                         self.angulo=self.getAngulo2(self.punto1[1],self.punto2[1])
-                    self.validarAngulo2()
+                    #self.validarAngulo2()
                     self.runProg=True
                 else:
                     self.punto1=valorPs[0]
@@ -344,7 +349,7 @@ class BusquedaPunto(object):
             self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
     def aumentarDistancia(self,distancia,angulo):
         xa=self.punto1[0]+distancia*math.cos(angulo)
-        ya=self.punto1[1]+distancia*math.cos(angulo)
+        ya=self.punto1[1]+distancia*math.sin(angulo)
         print("puntoNuevo segun1 aumentado distancia= {}".format((xa,ya)))
         self.colocarPunto((xa,ya),self.punto1)
     def colocarPunto(self,puntoNew,puntoAntiguo):
@@ -387,10 +392,10 @@ class BusquedaPunto(object):
                 for row in cursor:
                     if row[1]==-1:
                         fidl.append([i,row[0]])
-                    elif row[1]==0:
-                        newp.append([i,row[0]])
+                    #elif row[1]==0:
+                     #   newp.append([i,row[0]])
                     else:
-                        datos.append([i,row[0]])
+                        newp.append([i,row[0]])
         return fidl,datos,newp
     def getPuntosFID(self,lista,num):
         fidl,datos=[],[]

@@ -3,39 +3,149 @@ import pythonaddins
 
 class NumeroLinea(object):
     def __init__(self):
-        self.target = 0
-        self.editable = True
-        self.enabled = True
-        self.items=[1,2,3,4,5,6]
-        self.dropdownWidth = '   WWWWW'
-        self.width = 'WWWWW'
+        self.mxd = arcpy.mapping.MapDocument("CURRENT")
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
+        self.width = 'WWWWWWW'
+        self.target=""
     def onSelChange(self, selection):
         print(selection)
         self.target=selection
-        busqueda.nrLinea=selection
     def onEditChange(self, text):
         print(text)
-        self.target=int(text)
+        self.target=text
+        self.selection=text
     def onFocus(self, focused):
         #Adjust as new layers are added to dataframe
-        print(self.items)
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        if len(lyrs) > 0:
+            self.target = lyrs[0]
+            try:
+                if not self.target == self.selection:
+                    self.target = self.selection
+            except AttributeError:
+                pass
     def onEnter(self):
         print("se eligio eso")
-        if self.noExiste(self.target):
-            self.items.append(self.target)
-            busqueda.nrLinea=self.target
-        else:
-            pythonaddins.MessageBox ("Intente nuevamente \n Existe el numero", "Error")
     def refresh(self):
         pass
-    def noExiste(self,item):
-        res=True
-        for i in self.items:
-            if i==item:
-                res=False
-                break
-        return res
 
+class CapaDesechos(object):
+    def __init__(self):
+        self.mxd = arcpy.mapping.MapDocument("CURRENT")
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
+        self.width = 'WWWWWWW'
+        self.target=""
+    def onSelChange(self, selection):
+        print(selection)
+        self.target=selection
+    def onEditChange(self, text):
+        print(text)
+        self.target=text
+        self.selection=text
+    def onFocus(self, focused):
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        if len(lyrs) > 0:
+            self.target = lyrs[0]
+            try:
+                if not self.target == self.selection:
+                    self.target = self.selection
+            except AttributeError:
+                pass
+    def onEnter(self):
+        print("se eligio eso")
+    def refresh(self):
+        pass
+
+class CapaNoCultivable(object):
+    def __init__(self):
+        self.mxd = arcpy.mapping.MapDocument("CURRENT")
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
+        self.width = 'WWWWWWW'
+        self.target=""
+    def onSelChange(self, selection):
+        print(selection)
+        self.target=selection
+    def onEditChange(self, text):
+        self.target=text
+        self.selection=text
+    def onFocus(self, focused):
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        if len(lyrs) > 0:
+            self.target = lyrs[0]
+            try:
+                if not self.target == self.selection:
+                    self.target = self.selection
+            except AttributeError:
+                pass
+    def onEnter(self):
+        print("se eligio eso")
+    def refresh(self):
+        pass
+
+class CapaCamino(object):
+    def __init__(self):
+        self.mxd = arcpy.mapping.MapDocument("CURRENT")
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
+        self.width = 'WWWWWWW'
+        self.target=""
+    def onSelChange(self, selection):
+        self.target=selection
+    def onEditChange(self, text):
+        self.target=text
+        self.selection=text
+    def onFocus(self, focused):
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        if len(lyrs) > 0:
+            self.target = lyrs[0]
+            try:
+                if not self.target == self.selection:
+                    self.target = self.selection
+            except AttributeError:
+                pass
+    def onEnter(self):
+        print("se eligio eso")
+    def refresh(self):
+        pass
+class CapaAuxiliar(object):
+    def __init__(self):
+        self.mxd = arcpy.mapping.MapDocument("CURRENT")
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
+        self.width = 'WWWWWWW'
+        self.target=""
+    def onSelChange(self, selection):
+        print(selection)
+        self.target=selection
+    def onEditChange(self, text):
+        self.target=text
+        self.selection=text
+    def onFocus(self, focused):
+        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
+        self.items = lyrs
+        if len(lyrs) > 0:
+            self.target = lyrs[0]
+            try:
+                if not self.target == self.selection:
+                    self.target = self.selection
+            except AttributeError:
+                pass
+    def onEnter(self):
+        print("se eligio eso")
+    def refresh(self):
+        pass
 class ButtonEjecutar(object):
     """Implementation for nuevaLinea_addin.activar (Button)"""
     def __init__(self):
@@ -52,10 +162,16 @@ class ButtonEjecutar(object):
 class ButtonActivar(object):
     """Implementation for nuevaLinea_addin.activar (Button)"""
     def __init__(self):
-        self.enabled = False
+        self.enabled = True
         self.checked = False
     def onClick(self):
-        selecPunto.enabled=True
+        if capaArbol.target!="" and capaDesechos.target!="" and capaNoCultivable.target!="" and capaCamino.target!="" and capaAuxiliar.target!="":
+            selecPunto.enabled=True
+            descartivar.enabled=True
+            ejecutar.enabled=True
+        else:
+            pythonaddins.MessageBox("Seleccione las capas de trabajo","Error")
+            selecPunto.enabled=False
         
 
 class ButtonDesactivar(object):
@@ -66,28 +182,17 @@ class ButtonDesactivar(object):
     def onClick(self):
         selecPunto.enabled=False
         
-class ButtonDirName(object):
+class ButtonClearAuxiliar(object):
     def __init__(self):
         self.enabled=True
         self.checked=False
         self.filename=""
     def onClick(self): 
-        directorio = pythonaddins.OpenDialog(r"c://", filter=MyValidator())
+        arcpy.DeleteFeatures_management(capaAuxiliar.target);
+        '''directorio = pythonaddins.OpenDialog(r"c://", filter=MyValidator())
         print(directorio)
         arcpy.env.workspace=os.path.dirname(directorio)
-        self.filename=os.path.basename(directorio)
-        selecPunto.enabled=True
-        activar.enabled=True
-        descartivar.enabled=True
-        ejecutar.enabled=True
-
-class MyValidator(object):
-    def __str__(self):
-        return "Text files(*.*)"
-    def __call__(self, filen):
-        if os.path.isfile(filen) and filen.lower().endswith(".shp"):
-            return True
-        return False
+        self.filename=os.path.basename(directorio)'''
 
 class SelectPunto(object):
     """Implementation for nuevaLinea_addin.selecPunto (Tool)"""
@@ -98,18 +203,15 @@ class SelectPunto(object):
     def onMouseDown(self, x, y, button, shift):
         pass
     def onMouseDownMap(self, x, y, button, shift):
-        filenm=dataInput.filename
-        filenm=filenm[:filenm.find(".")]
-        busqueda.filename=filenm
-        print(busqueda.filename)
+        filenm=capaAuxiliar.target
         if(filenm!=""):
-            with arcpy.da.InsertCursor("auxiliar","SHAPE@XY") as cursor:
+            with arcpy.da.InsertCursor(filenm,"SHAPE@XY") as cursor:
                 cursor.insertRow([(x,y)])
                 self.cont+=1
             del cursor
             arcpy.RefreshActiveView()
             if(self.cont==2):
-                busqueda.runProg=True
+                #busqueda.runProg=True
                 self.enabled=False
                 self.cont=0
         else:

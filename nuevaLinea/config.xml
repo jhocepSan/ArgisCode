@@ -7,7 +7,7 @@
             image="Images\uno.png" 
             message="Seleccione dos puntos\nPara la herramienta" 
             tip=""><Help heading="" /></Tool>
-        <Button caption="ButtonActivar" 
+        <Button caption="Activar tools" 
             category="Python Addin" 
             class="ButtonActivar" 
             id="nuevaLinea_addin.activar" 
@@ -28,20 +28,56 @@
             image="" 
             message="" 
             tip=""><Help heading="" /></Button>
-        <Button caption="DirName" 
+        <Button caption="Limpiar Auxiliar" 
             category="Python Addin" 
-            class="ButtonDirName" 
-            id="nuevaLinea_addin.dataInput" 
-            message="Seleccione el nombre del archivo shapefile"></Button>
+            class="ButtonClearAuxiliar" 
+            id="nuevaLinea_addin.clearAuxiliar" 
+            message="Eliminar puntos de capa Auxiliar"></Button>
         <ComboBox caption="Capa Arboles" 
             category="Python Addin" 
             class="NumeroLinea" 
-            id="nuevaLinea_addin.nroLinea" 
-            itemSizeString="WWWW" 
-            message="Numero de linea que se usara\nen la iteracion" 
+            id="nuevaLinea_addin.capaArbol" 
+            itemSizeString="WWWWWWWWWWWWWWWWWWWW" 
+            message="Seleccione Capa Trabajo" 
             rows="4" 
-            sizeString="WWWW" 
-            tip="Nro.. Linea"><Help heading="" /></ComboBox>
+            sizeString="WWWWWWWW" 
+            tip="Capa de trabajo"><Help heading="" /></ComboBox>
+        <ComboBox caption="Capa Desechos" 
+            category="Python Addin" 
+            class="CapaDesechos" 
+            id="nuevaLinea_addin.capaDesechos" 
+            itemSizeString="WWWWWWWWWWWWWWWWWWWW" 
+            message="Seleccione Capa desechos" 
+            rows="4" 
+            sizeString="WWWWWWWW" 
+            tip="Capa de desechos"><Help heading="" /></ComboBox>
+        <ComboBox caption="Capa No cultivable" 
+            category="Python Addin" 
+            class="CapaNoCultivable" 
+            id="nuevaLinea_addin.capaNoCultivable" 
+            itemSizeString="WWWWWWWWWWWWWWWWWWWW" 
+            message="Seleccione Capa no Cultivable" 
+            rows="4" 
+            sizeString="WWWWWWWW" 
+            tip="Capa de no cultivacion"><Help heading="" /></ComboBox>
+        <ComboBox caption="Capa Caminos" 
+            category="Python Addin" 
+            class="CapaCamino" 
+            id="nuevaLinea_addin.capaCamino" 
+            itemSizeString="WWWWWWWWWWWWWWWWWWWW" 
+            message="Seleccione Capa de caminos" 
+            rows="4" 
+            sizeString="WWWWWWWW" 
+            tip="Capa de caminos"><Help heading="" /></ComboBox>
+        <ComboBox caption="Capa Auxiliar" 
+            category="Python Addin" 
+            class="CapaAuxiliar" 
+            id="nuevaLinea_addin.capaAuxiliar" 
+            itemSizeString="WWWWWWWWWWWWWWWWWWWW" 
+            message="Seleccione Capa auxiliar" 
+            rows="4" 
+            sizeString="WWWWWWWW" 
+            tip="Capa de puntos auxiliares"><Help heading="" /></ComboBox>
         </Commands>
     <Extensions>
         </Extensions>
@@ -52,8 +88,12 @@
             <Button refID="nuevaLinea_addin.activar" />
             <Button refID="nuevaLinea_addin.descartivar" />
             <Button refID="nuevaLinea_addin.ejecutar" />
-            <Button refID="nuevaLinea_addin.dataInput"/>
-            <ComboBox refID="nuevaLinea_addin.nroLinea" />
+            <Button refID="nuevaLinea_addin.clearAuxiliar"/>
+            <ComboBox refID="nuevaLinea_addin.capaArbol" />
+            <ComboBox refID="nuevaLinea_addin.capaDesechos" />
+            <ComboBox refID="nuevaLinea_addin.capaNoCultivable"/>
+            <ComboBox refID="nuevaLinea_addin.capaCamino"/>
+            <ComboBox refID="nuevaLinea_addin.capaAuxiliar"/>
         </Items></Toolbar>
         </Toolbars>
     <Menus>
