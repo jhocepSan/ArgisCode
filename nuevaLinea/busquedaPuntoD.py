@@ -4,6 +4,9 @@ class BusquedaPunto(object):
     def __init__(self):
         self.filename="1065_san_jorge_arboles_merge"
         self.fileAuxi="auxiliar"
+        self.fileCamino=""
+        self.fileNoCultivable=""
+        self.fileDesechos=""
         self.clearProg()
     def clearProg(self):
         self.distancia=0
@@ -15,6 +18,14 @@ class BusquedaPunto(object):
         self.valido=False
         self.runProg=False
         self.nrLinea=0
+    def maxNroLine(self):
+        nroLinea=0
+        try:
+            with arcpy.da.SearchCursor(self.filename,['nro_linea'],'"nro_linea">0',None,None,sql_clause=("TOP 1","ORDER BY MAX(nro_linea) DESC")) as cursor:
+                nroLinea=max(cursor)[0]
+        except:
+            nroLinea=1
+        self.nrLinea=nroLinea
     def getDistancia(self,pa,pb):
         res=math.sqrt(math.pow(pa[1]-pb[1],2)+math.pow(pa[0]-pb[0],2))
         return res
@@ -91,7 +102,7 @@ class BusquedaPunto(object):
                     while cont<=5:
                         a=self.getPuntoParalelo(valorPs[1][1],diP,m,1)
                         self.agregarPunto(a)
-                        if self.dentroDeArea("1065_san_jorge_desechos_depurados","auxiliar") or self.dentroDeArea("1065_san_jorge_caminos","auxiliar") or self.dentroDeArea("1065_san_jorge_area_nocultivable","auxiliar"):
+                        if self.dentroDeArea(self.fileCamino,self.fileAuxi) or self.dentroDeArea(self.fileDesechos,self.fileAuxi) or self.dentroDeArea(self.fileNoCultivable,self.fileAuxi):
                             cont=10
                             n=100
                         else:
@@ -188,7 +199,7 @@ class BusquedaPunto(object):
                 print("D = {} alfa= {}".format(self.distancia,self.angulo))
                 puntoNew,puntoAntiguo=self.getPuntoSugerido(self.distancia,self.angulo)
                 self.colocarPunto(puntoNew,puntoAntiguo)
-                if self.dentroDeArea("1065_san_jorge_desechos_depurados","auxiliar") or self.dentroDeArea("1065_san_jorge_caminos","auxiliar") or self.dentroDeArea("1065_san_jorge_area_nocultivable","auxiliar"):
+                if self.dentroDeArea(self.fileCamino,self.fileAuxi) or self.dentroDeArea(self.fileDesechos,self.fileAuxi) or self.dentroDeArea(self.fileNoCultivable,self.fileAuxi):
                     print("dentro de un area no ejecutable")
                     self.limpiarAux()
                     n=10000
