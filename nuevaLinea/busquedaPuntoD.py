@@ -169,7 +169,7 @@ class BusquedaPunto(object):
                 self.punto1=valorPs[0][1]
                 self.punto2=valorPs[1][1]
                 self.setNroLine(valorPs[0][0],1)
-                self.setNroLine(valorPs[1][0],1)
+                #self.setNroLine(valorPs[1][0],1)
                 self.area=0.5
                 if self.distancia==0:
                     self.distancia=self.getDistancia(self.punto1,self.punto2)
@@ -392,8 +392,8 @@ class BusquedaPunto(object):
                 for row in cursor:
                     if row[1]==-1:
                         fidl.append([i,row[0]])
-                    #elif row[1]==0:
-                     #   newp.append([i,row[0]])
+                    elif row[1]==0:
+                        newp.append([i,row[0]])
                     else:
                         newp.append([i,row[0]])
         return fidl,datos,newp
