@@ -235,7 +235,7 @@ class BusquedaPunto(object):
                     self.limpiarAux()
             elif nroP==1:
                 self.valido=False
-                if self.area<=6:
+                if self.area<=10:
                     self.aumentarDistancia(self.distancia+self.area,self.angulo)
                     self.area+=0.5
                 else:
@@ -405,7 +405,7 @@ class BusquedaPunto(object):
     def validarAngulo(self,tipo):
         anguloNuevo=self.getAngulo(self.punto1,self.punto2,tipo)
         print("alfa nuevo: {}, alfa antiguo {}".format(anguloNuevo,self.angulo))
-        if abs(anguloNuevo-self.angulo)<=0.8:
+        if abs(anguloNuevo-self.angulo)<=1.2:
             self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
     def aumentarDistancia(self,distancia,angulo):
         xa=self.punto1[0]+distancia*math.cos(angulo)
