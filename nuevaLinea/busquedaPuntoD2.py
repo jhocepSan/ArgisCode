@@ -1,14 +1,15 @@
 import arcpy,math
-import pythonaddins
+import pythonaddins 
 
 class BusquedaPunto(object):
     def __init__(self):
-        self.filename="31_arboles"
+        self.filename="arboles"
         self.fileAuxi="auxiliar"
-        self.fileCamino="31_caminos"
-        self.fileNoCultivable="31_no_cultivable"
-        self.fileDesechos="31_desechos_detectados"
+        self.fileCamino="709_caminos3"
+        self.fileNoCultivable="709_nocultivable3"
+        self.fileDesechos="709_caminos3"
         self.nrLinea=0
+        self.runPara=False
         self.clearProg()
     def clearProg(self):
         self.distancia=0
@@ -18,8 +19,7 @@ class BusquedaPunto(object):
         self.fileNo=[]
         self.area=0.5
         self.valido=False
-        self.runProg=False
-        self.runPara=False
+        self.runProg=False       
     def maxNroLine(self):
         nroLinea=0
         try:
@@ -85,7 +85,7 @@ class BusquedaPunto(object):
             if nroP>0:
                 _,_,valorPs=self.getPuntos(puntos,0)
                 print(valorPs)
-                if len(valorPs)>=1:
+                if len(valorPs)>=2:
                     #self.setNroLine(valorPs[0][0],self.nrLinea)
                     #self.setNroLine(valorPs[1][0],self.nrLinea)
                     di=self.getDistancia(valorPs[0][1],valorPs[1][1])
@@ -105,25 +105,27 @@ class BusquedaPunto(object):
                         self.clearProg()
                     except Exception as err:
                         print("Problema:: {}".format(err))
+                        pythonaddins.MessageBox ("Error: {}".format(err), "Error")
                     cont=0
                     diP=di
-                    while cont<=15:
+                    while cont<=8:
                         a=self.getPuntoParalelo(valorPs[1][1],diP,m,1)
                         self.agregarPunto(a)
                         if self.dentroDeArea(self.fileCamino,self.fileAuxi) or self.dentroDeArea(self.fileDesechos,self.fileAuxi) or self.dentroDeArea(self.fileNoCultivable,self.fileAuxi):
-                            cont=100
+                            cont=10
                             n=100
                             self.runPara=False
                             self.limpiarAux()
+                            pythonaddins.MessageBox ("Termino de Ejecutar", "Finalizo")
                         else:
                             dat,nd=self.getSeleccion()
                             cont+=1
                             b=()
                             if nd!=0:
                                 i=0
-                                dis=di
+                                dis=di-2
                                 _,_,newP=self.getPuntos(dat,0)
-                                while i<=8:
+                                while i<=5:
                                     b=self.aumentarDpunto(newP[0][1],dis,alfa)
                                     self.agregarPunto(b)
                                     dat,e=self.getSeleccion()
@@ -136,8 +138,7 @@ class BusquedaPunto(object):
                                 self.nrLinea+=1
                                 cont=100
                                 self.limpiarAux()
-                                self.colocarPunto(a,b)
-                       
+                                self.colocarPunto(a,b)                       
     def getPendiente(self,punto1,punto2):
         m= (punto2[1]-punto1[1])/(punto2[0]-punto1[0])
         return m
@@ -190,7 +191,7 @@ class BusquedaPunto(object):
                         self.setNroLine(puntoFID[0][0],self.nrLinea)
                         self.setNroLine(valorPs[0][0],self.nrLinea)
                         if len(puntosAntiguos)>=2:
-                            puntosAntiguos=[]
+                            puntosAntiguos.clear()
                         puntosAntiguos.append(puntoFID[0][0])
                         puntosAntiguos.append(valorPs[0][0])
                         self.valido=True
@@ -201,7 +202,7 @@ class BusquedaPunto(object):
                         self.setNroLine(puntoFID[0][0],self.nrLinea)
                         self.setNroLine(valorPs[0][0],self.nrLinea)
                         if len(puntosAntiguos)>=2:
-                            puntosAntiguos=[]
+                            puntosAntiguos.clear()
                         puntosAntiguos.append(puntoFID[0][0])
                         puntosAntiguos.append(valorPs[0][0])
                         self.valido=True
@@ -225,7 +226,7 @@ class BusquedaPunto(object):
                             self.setNroLine(puntoFID[0][0],self.nrLinea)
                             self.setNroLine(valorPs[0],self.nrLinea)
                             if len(puntosAntiguos)>=2:
-                                puntosAntiguos=[]
+                                puntosAntiguos.clear()
                             puntosAntiguos.append(puntoFID[0][0])
                             puntosAntiguos.append(valorPs[0][0])
                             self.runProg=True   
@@ -247,7 +248,7 @@ class BusquedaPunto(object):
                             self.distancia=self.getDistancia(self.punto1,self.punto2)
                             self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
                         if len(puntosAntiguos)>=2:
-                            puntosAntiguos=[]
+                            puntosAntiguos.clear()
                         puntosAntiguos.append(valorPs[0][0])
                         puntosAntiguos.append(valorPs[1][0])
                         self.validarAngulo(tipo)
@@ -255,10 +256,9 @@ class BusquedaPunto(object):
                         self.runProg=False
                         self.limpiarAux()
                 else:
+                    pythonaddins.MessageBox ("Se tuvo un book", "Error")
                     self.runProg=False
-                    self.valido=False
                     self.limpiarAux()
-                    pythonaddins.MessageBox ("Se tuvo un book puntos iguales", "Error")
             elif nroP==1:
                     self.valido=False
                     if self.area<=10:

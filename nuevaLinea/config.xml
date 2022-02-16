@@ -33,6 +33,13 @@
             class="ButtonClearAuxiliar" 
             id="nuevaLinea_addin.clearAuxiliar" 
             message="Eliminar puntos de capa Auxiliar"></Button>
+        <Button caption="llenar Campo" 
+            category="Python Addin" 
+            class="ButtonLlenarCampo" 
+            id="nuevaLinea_addin.llenarCampo" 
+            image="" 
+            message="" 
+            tip=""><Help heading="" /></Button>
         <ComboBox caption="Capa Arboles" 
             category="Python Addin" 
             class="NumeroLinea" 
@@ -89,6 +96,7 @@
             <Button refID="nuevaLinea_addin.descartivar" />
             <Button refID="nuevaLinea_addin.ejecutar" />
             <Button refID="nuevaLinea_addin.clearAuxiliar"/>
+            <Button refID="nuevaLinea_addin.llenarCampo"/>
             <ComboBox refID="nuevaLinea_addin.capaArbol" />
             <ComboBox refID="nuevaLinea_addin.capaDesechos" />
             <ComboBox refID="nuevaLinea_addin.capaNoCultivable"/>
