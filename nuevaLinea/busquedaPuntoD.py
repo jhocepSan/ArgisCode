@@ -2,8 +2,12 @@ import arcpy,math
 
 class BusquedaPunto(object):
     def __init__(self):
-        self.filename="1065_san_jorge_arboles_merge"
+        self.filename="arboles"
         self.fileAuxi="auxiliar"
+        self.fileCamino="709_caminos3"
+        self.fileNoCultivable="709_nocultivable3"
+        self.fileDesechos="709_caminos3"
+        self.nrLinea=0
         self.clearProg()
     def clearProg(self):
         self.distancia=0
@@ -14,7 +18,14 @@ class BusquedaPunto(object):
         self.area=0.5
         self.valido=False
         self.runProg=False
-        self.nrLinea=0
+    def maxNroLine(self):
+        nroLinea=0
+        try:
+            with arcpy.da.SearchCursor(self.filename,['nro_linea'],'"nro_linea">0',None,None,sql_clause=("TOP 1","ORDER BY MAX(nro_linea) DESC")) as cursor:
+                nroLinea=max(cursor)[0]
+        except:
+            nroLinea=1
+        self.nrLinea=nroLinea
     def getDistancia(self,pa,pb):
         res=math.sqrt(math.pow(pa[1]-pb[1],2)+math.pow(pa[0]-pb[0],2))
         return res
@@ -64,13 +75,12 @@ class BusquedaPunto(object):
             return True
     def runBusquedaParalela(self):
         n=0
-        self.nrLinea=1
-        while n<1:
+        while n<5:
             puntos,nroP=self.getSeleccion()
             print("Nuevo numero de linea : "+str(self.nrLinea))
             n+=1
             if nroP>0:
-                _,_,valorPs=self.getPuntos(puntos)
+                _,_,valorPs=self.getPuntos(puntos,0)
                 print(valorPs)
                 if len(valorPs)>=1:
                     #self.setNroLine(valorPs[0][0],self.nrLinea)
@@ -79,19 +89,21 @@ class BusquedaPunto(object):
                     alfa=self.getAngulo(valorPs[0][1],valorPs[1][1],0)
                     m=self.getPendiente(valorPs[0][1],valorPs[1][1])
                     print("Distanica: {}, alfa: {}, pendiente: {}".format(di,alfa,m))
-                    #for i in range(2):
-                    self.runProg=True
-                    self.runBusqueda(0)
-                    #self.busquedaLineal(valorPs,1,nroP)
-                    #print("Busqueda lineal Activado")
-                    self.busquedaLin(0,puntos[0])
-                    #self.clearProg()
-                    '''cont=0
+                    try:
+                        self.runProg=True
+                        self.runBusqueda(0)
+                        #self.busquedaLineal(valorPs,1,nroP)
+                        #print("Busqueda lineal Activado")
+                        #self.busquedaLin(0,puntos[0])
+                        self.clearProg()
+                    except Exception as err:
+                        print("Problema:: {}".format(err))
+                    cont=0
                     diP=di
                     while cont<=5:
                         a=self.getPuntoParalelo(valorPs[1][1],diP,m,1)
                         self.agregarPunto(a)
-                        if self.dentroDeArea("1065_san_jorge_desechos_depurados","auxiliar") or self.dentroDeArea("1065_san_jorge_caminos","auxiliar") or self.dentroDeArea("1065_san_jorge_area_nocultivable","auxiliar"):
+                        if self.dentroDeArea(self.fileCamino,self.fileAuxi) or self.dentroDeArea(self.fileDesechos,self.fileAuxi) or self.dentroDeArea(self.fileNoCultivable,self.fileAuxi):
                             cont=10
                             n=100
                         else:
@@ -101,7 +113,7 @@ class BusquedaPunto(object):
                             if nd!=0:
                                 i=0
                                 dis=di
-                                _,newP=self.getPuntos(dat)
+                                _,_,newP=self.getPuntos(dat,0)
                                 while i<=3:
                                     b=self.aumentarDpunto(newP[0][1],dis,alfa)
                                     self.agregarPunto(b)
@@ -114,7 +126,8 @@ class BusquedaPunto(object):
                             if len(b)!=0 and len(a)!=0:
                                 self.nrLinea+=1
                                 cont=100
-                                self.colocarPunto(a,b)'''
+                                self.limpiarAux()
+                                self.colocarPunto(a,b)
                          
     def getPendiente(self,punto1,punto2):
         m= (punto2[1]-punto1[1])/(punto2[0]-punto1[0])
@@ -144,51 +157,82 @@ class BusquedaPunto(object):
         return (xa,ya)
     def runBusqueda(self,tipo):
         n=0
+        print("Seteo de linea nro: {}".format(self.nrLinea))
         while self.runProg:
             puntos,nroP=self.getSeleccion()
             if nroP>2:
-                puntoFID,valorPs=self.getPuntosFID(puntos,1)
-                print("puntoFid: {}".format(puntoFID))
-                print("puntos: {}".format(valorPs))
-                disab=self.getDistancia(puntoFID[0][1],valorPs[0][1])
-                disac=self.getDistancia(puntoFID[0][1],valorPs[1][1])
-                print("distancias 1 {}, 2 {}".format(disab,disac))
-                if disab-self.distancia<disac-self.distancia:
-                    self.setNroLine(valorPs[1][0],-1)
-                    valorPs.pop(1)
+                if nroP==3:
+                    puntoFID,valorPs=self.getPuntosFID(puntos,self.nrLinea)
+                    print("puntoFid: {}".format(puntoFID))
+                    print("puntos: {}".format(valorPs))
+                    if len(valorPs)==2:
+                        disab=self.getDistancia(puntoFID[0][1],valorPs[0][1])
+                        disac=self.getDistancia(puntoFID[0][1],valorPs[1][1])
+                        print("distancias 1 {}, 2 {}".format(disab,disac))
+                        if disab-self.distancia<disac-self.distancia:
+                            self.setNroLine(valorPs[1][0],-1)
+                            valorPs.pop(1)
+                        else:
+                            self.setNroLine(valorPs[0][0],-1)
+                            valorPs.pop(0)
+                        self.punto1=puntoFID[0][1]
+                        self.punto2=valorPs[0][1]
+                        self.setNroLine(puntoFID[0][0],self.nrLinea)
+                        self.setNroLine(valorPs[0][0],self.nrLinea)
+                        self.valido=True
+                        self.validarAngulo(tipo)
+                    else:
+                        self.punto1=puntoFID[0][1]
+                        self.punto2=valorPs[0][1]
+                        self.setNroLine(puntoFID[0][0],self.nrLinea)
+                        self.setNroLine(valorPs[0][0],self.nrLinea)
+                        self.valido=True
+                        self.validarAngulo(tipo)
                 else:
-                    self.setNroLine(valorPs[0][0],-1)
-                    valorPs.pop(0)
-                self.punto1=puntoFID[0][1]
-                self.punto2=valorPs[0][1]
-                self.valido=True
-                self.validarAngulo(tipo)
+                    puntoFID,valorPs=self.getPuntosFID(puntos,self.nrLinea)
+                    if len(puntoFID)!=0:
+                        if len(valorPs)==3:
+                            lista=list()
+                            for p in valorPs:
+                                d1=self.getDistancia(puntoFID[0][1],p[0][1])
+                                list.append(d1)
+                            d2=self.getDistancia(puntoFID[0][1],valorPs[1][1])
+                            d3=self.getDistancia(puntoFID[0][1],valorPs[2][1])
+                    else:
+
+                        self.runProg=False
+                        self.limpiarAux()
             elif nroP==2:
                 self.valido=True
-                _,_,valorPs=self.getPuntos(puntos)
-                self.punto1=valorPs[0][1]
-                self.punto2=valorPs[1][1]
-                self.setNroLine(valorPs[0][0],1)
-                #self.setNroLine(valorPs[1][0],1)
-                self.area=0.5
-                if self.distancia==0:
-                    self.distancia=self.getDistancia(self.punto1,self.punto2)
-                    self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
-                self.validarAngulo(tipo)
+                _,_,valorPs=self.getPuntos(puntos,1)
+                if len(valorPs)==2:
+                    self.punto1=valorPs[0][1]
+                    self.punto2=valorPs[1][1]
+                    self.setNroLine(valorPs[0][0],self.nrLinea)
+                    self.setNroLine(valorPs[1][0],self.nrLinea)
+                    self.area=0.5
+                    if self.distancia==0:
+                        self.distancia=self.getDistancia(self.punto1,self.punto2)
+                        self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
+                    self.validarAngulo(tipo)
+                else:
+                    self.runProg=False
+                    self.limpiarAux()
             elif nroP==1:
                 self.valido=False
-                if self.area<=5:
+                if self.area<=6:
                     self.aumentarDistancia(self.distancia+self.area,self.angulo)
                     self.area+=0.5
                 else:
                     self.area=0.5
                     n=1000
+                    self.limpiarAux()
                     self.runProg=False
             if self.valido:
                 print("D = {} alfa= {}".format(self.distancia,self.angulo))
                 puntoNew,puntoAntiguo=self.getPuntoSugerido(self.distancia,self.angulo)
                 self.colocarPunto(puntoNew,puntoAntiguo)
-                if self.dentroDeArea("1065_san_jorge_desechos_depurados","auxiliar") or self.dentroDeArea("1065_san_jorge_caminos","auxiliar") or self.dentroDeArea("1065_san_jorge_area_nocultivable","auxiliar"):
+                if self.dentroDeArea(self.fileCamino,self.fileAuxi) or self.dentroDeArea(self.fileDesechos,self.fileAuxi) or self.dentroDeArea(self.fileNoCultivable,self.fileAuxi):
                     print("dentro de un area no ejecutable")
                     self.limpiarAux()
                     n=10000
@@ -385,17 +429,26 @@ class BusquedaPunto(object):
             for row in curs:
                 row[0] = num
                 curs.updateRow(row)
-    def getPuntos(self,lista):
+    def getPuntos(self,lista,tipo):
         fidl,datos,newp=[],[],[]
         for i in lista:
             with arcpy.da.SearchCursor(self.filename,["SHAPE@XY","nro_linea"],""""FID"={}""".format(i)) as cursor:
-                for row in cursor:
-                    if row[1]==-1:
-                        fidl.append([i,row[0]])
-                    elif row[1]==0:
-                        newp.append([i,row[0]])
-                    else:
-                        newp.append([i,row[0]])
+                if tipo==1:
+                    for row in cursor:
+                        if row[1]==-1:
+                            fidl.append([i,row[0]])
+                        elif row[1]==self.nrLinea or row[1]==0:
+                            newp.append([i,row[0]])
+                        else:
+                            datos.append([i,row[0]])
+                elif tipo==0:
+                    for row in cursor:
+                        if row[1]==-1:
+                            fidl.append([i,row[0]])
+                        elif row[1]==0:
+                            newp.append([i,row[0]])
+                        else:
+                            datos.append([i,row[0]])
         return fidl,datos,newp
     def getPuntosFID(self,lista,num):
         fidl,datos=[],[]
@@ -404,6 +457,6 @@ class BusquedaPunto(object):
                 for row in cursor:
                     if row[1]==num:
                         fidl.append([i,row[0]])
-                    else:
+                    elif row[1]==0:
                         datos.append([i,row[0]])
         return fidl,datos
