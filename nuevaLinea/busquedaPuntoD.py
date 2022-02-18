@@ -49,7 +49,7 @@ class BusquedaPunto(object):
         self.punto2=aux
     def getSeleccion(self):
         listaPuntos=list()
-        dato=arcpy.SelectLayerByLocation_management(self.filename,"WITHIN_A_DISTANCE",self.fileAuxi,"70 Centimeters","NEW_SELECTION")
+        dato=arcpy.SelectLayerByLocation_management(self.filename,"WITHIN_A_DISTANCE",self.fileAuxi,"100 Centimeters","NEW_SELECTION")
         nroPuntos=int(arcpy.GetCount_management(self.filename)[0])
         print("total Seleccionados: {}".format(arcpy.GetCount_management(self.filename)[0]))
         for i in range(nroPuntos):
@@ -74,6 +74,7 @@ class BusquedaPunto(object):
         else:
             return True
     def runBusquedaParalela(self):
+        dIn=100000
         n=0
         while n<5:
             puntos,nroP=self.getSeleccion()
@@ -86,6 +87,10 @@ class BusquedaPunto(object):
                     #self.setNroLine(valorPs[0][0],self.nrLinea)
                     #self.setNroLine(valorPs[1][0],self.nrLinea)
                     di=self.getDistancia(valorPs[0][1],valorPs[1][1])
+                    if di<dIn:
+                        dIn=di
+                    else:
+                        di=dIn
                     alfa=self.getAngulo(valorPs[0][1],valorPs[1][1],0)
                     m=self.getPendiente(valorPs[0][1],valorPs[1][1])
                     print("Distanica: {}, alfa: {}, pendiente: {}".format(di,alfa,m))
@@ -106,15 +111,16 @@ class BusquedaPunto(object):
                         if self.dentroDeArea(self.fileCamino,self.fileAuxi) or self.dentroDeArea(self.fileDesechos,self.fileAuxi) or self.dentroDeArea(self.fileNoCultivable,self.fileAuxi):
                             cont=10
                             n=100
+                            self.limpiarAux()
                         else:
                             dat,nd=self.getSeleccion()
                             cont+=1
                             b=()
                             if nd!=0:
                                 i=0
-                                dis=di
+                                dis=di-2
                                 _,_,newP=self.getPuntos(dat,0)
-                                while i<=3:
+                                while i<=5:
                                     b=self.aumentarDpunto(newP[0][1],dis,alfa)
                                     self.agregarPunto(b)
                                     dat,e=self.getSeleccion()
@@ -191,15 +197,24 @@ class BusquedaPunto(object):
                 else:
                     puntoFID,valorPs=self.getPuntosFID(puntos,self.nrLinea)
                     if len(puntoFID)!=0:
+                        print("punto:::fid   {}".format(puntoFID[0][1]))
                         if len(valorPs)==3:
-                            lista=list()
+                            lista=[]
                             for p in valorPs:
-                                d1=self.getDistancia(puntoFID[0][1],p[0][1])
-                                list.append(d1)
-                            d2=self.getDistancia(puntoFID[0][1],valorPs[1][1])
-                            d3=self.getDistancia(puntoFID[0][1],valorPs[2][1])
+                                d1=self.getDistancia(puntoFID[0][1],p[1])
+                                lista.append(abs(d1-self.distancia))
+                            vv=lista.index(min(lista))
+                            for p in valorPs:
+                                if p[0]!=valorPs[vv][0]:
+                                    self.setNroLine(p[0],-1)
+                            valorPs=valorPs[vv]
+                            self.punto1=puntoFID[0][1]
+                            self.punto2=valorPs[1]
+                            self.setNroLine(puntoFID[0][0],self.nrLinea)
+                            self.setNroLine(valorPs[0],self.nrLinea)
+                            self.runProg=True   
+                            self.validarAngulo(tipo)
                     else:
-
                         self.runProg=False
                         self.limpiarAux()
             elif nroP==2:
@@ -220,7 +235,7 @@ class BusquedaPunto(object):
                     self.limpiarAux()
             elif nroP==1:
                 self.valido=False
-                if self.area<=6:
+                if self.area<=10:
                     self.aumentarDistancia(self.distancia+self.area,self.angulo)
                     self.area+=0.5
                 else:
@@ -389,7 +404,8 @@ class BusquedaPunto(object):
             self.angulo=self.getAngulo2(self.punto1[1],self.punto2[1])
     def validarAngulo(self,tipo):
         anguloNuevo=self.getAngulo(self.punto1,self.punto2,tipo)
-        if abs(anguloNuevo-self.angulo)<=0.2:
+        print("alfa nuevo: {}, alfa antiguo {}".format(anguloNuevo,self.angulo))
+        if abs(anguloNuevo-self.angulo)<=1.2:
             self.angulo=self.getAngulo(self.punto1,self.punto2,tipo)
     def aumentarDistancia(self,distancia,angulo):
         xa=self.punto1[0]+distancia*math.cos(angulo)
