@@ -71,17 +71,6 @@ class BusquedaPuntoParalelo(object):
         for i in datos:
             d=d or i
         return d
-<<<<<<< HEAD
-    def maxNroLine(self):
-        nroLinea=0
-        try:
-            with arcpy.da.SearchCursor(self.fileArboles,['nro_linea'],'"nro_linea">0',None,None,sql_clause=("TOP 1","ORDER BY MAX(nro_linea) DESC")) as cursor:
-                nroLinea=max(cursor)[0]+1
-        except:
-            nroLinea=1
-        self.nrLinea=nroLinea
-        
-=======
     def setNroLine(self,fid,nro_linea,visitado):
         with arcpy.da.UpdateCursor(self.fileArboles, ["nro_linea","valido"],""""FID"={}""".format(fid)) as curs:
             for row in curs:
@@ -141,4 +130,3 @@ class BusquedaPuntoParalelo(object):
                     self.setNroLine(self.punto2[0],self.nrLinea,1)
                     self.runProg=False
                     self.limpiarAux()
->>>>>>> 5971deef6d4c84b253baf5b4f13d03f83b83bbce
