@@ -125,7 +125,7 @@ class BusquedaPuntoParalelo(object):
             puntos,np=self.getSeleccion()
             if np==2:
                 distancia=self.getDistancia(puntos[0][1],puntos[1][1])
-                if distancia<self.distancia:
+                if distancia<self.distancia and distancia>2:
                     self.distancia=distancia
                 else:
                     distancia=self.distancia

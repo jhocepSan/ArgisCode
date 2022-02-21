@@ -85,6 +85,15 @@
             rows="4" 
             sizeString="WWWWWWWW" 
             tip="Capa de puntos auxiliares"><Help heading="" /></ComboBox>
+        <ComboBox caption="Sector De Ejecucion" 
+            category="Python Addin" 
+            class="CapaEjecucion" 
+            id="nuevaLinea_addin.capaEjecucion" 
+            itemSizeString="WWWWWWWWWWWWWWWWWWWW" 
+            message="Seleccione Capa donde delimites el trabajo de la herramienta" 
+            rows="4" 
+            sizeString="WWWWWWWW" 
+            tip="Capa de sectores a ejecutar"><Help heading="" /></ComboBox>
         </Commands>
     <Extensions>
         </Extensions>
@@ -102,6 +111,7 @@
             <ComboBox refID="nuevaLinea_addin.capaNoCultivable"/>
             <ComboBox refID="nuevaLinea_addin.capaCamino"/>
             <ComboBox refID="nuevaLinea_addin.capaAuxiliar"/>
+            <ComboBox refID="nuevaLinea_addin.capaEjecucion"/>
         </Items></Toolbar>
         </Toolbars>
     <Menus>
