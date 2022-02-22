@@ -2,7 +2,7 @@ import arcpy,os,math
 import pythonaddins
 import arcpy,math
 import pythonaddins
-
+print(os.path)
 class BusquedaPuntoParalelo(object):
     def __init__(self):
         self.fileArboles=""
