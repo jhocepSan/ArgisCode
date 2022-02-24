@@ -5,12 +5,12 @@ import pythonaddins
 print(os.path)
 class BusquedaPuntoParalelo(object):
     def __init__(self):
-        self.fileArboles="1065_san_jorge_arboles_merge"
+        self.fileArboles="31_arboles"
         self.fileAuxi="auxiliar"
-        self.fileCamino="1065_san_jorge_caminos"
-        self.fileNoCultivable="1065_san_jorge_area_nocultivable"
-        self.fileDesechos="1065_san_jorge_desechos_depurados"
-        self.fileEjecucion="areaTrabajo"
+        self.fileCamino="31_caminos"
+        self.fileNoCultivable="31_no_cultivable"
+        self.fileDesechos="31_desechos"
+        self.fileEjecucion="31_area"
         self.nrLinea=0
         self.runPara=False
         self.distancia=10000
@@ -142,7 +142,7 @@ class BusquedaPuntoParalelo(object):
                 self.angulo=anguloNuevo+0.08
     def anguloCorrecto(self):
         anguloNuevo=self.getAngulo(self.punto1[1],self.punto2[1])
-        if abs(anguloNuevo-self.angulo)>0.3 and ((anguloNuevo<0 and self.angulo<0) or (anguloNuevo>0 and self.angulo>0)):
+        if abs(anguloNuevo-self.angulo)>0.4 and ((anguloNuevo<0 and self.angulo<0) or (anguloNuevo>0 and self.angulo>0)):
             return False
         else:
             return True
@@ -223,7 +223,7 @@ class BusquedaPuntoParalelo(object):
                 newP=self.getPuntoSugerido(distancia,self.angulo)
                 self.colocarPunto(self.punto2[1],newP)
                 self.valido=False
-                if self.estaEnArea()==True and not self.areaEnTrabajo():
+                if self.estaEnArea()==True or not self.areaEnTrabajo():
                     self.setNroLine(self.punto2[0],self.nrLinea,1)
                     self.runProg=False
                     self.limpiarAux()
@@ -231,7 +231,7 @@ class BusquedaPuntoParalelo(object):
         self.limpiarAux()
     def busquedaParalela(self,arriba):
         while self.runPara and self.areaEnTrabajo():
-            puntosP,npP=self.getSeleccion()
+            puntosP,npP=self.getSeleccion2()
             if npP==2:
                 busco=True
                 distancia=self.getDistancia(puntosP[0][1],puntosP[1][1])
@@ -277,7 +277,20 @@ class BusquedaPuntoParalelo(object):
             elif npP==0:
                 self.runPara=False
                 self.limpiarAux()
-
+    def getSeleccion2(self):
+        otroP=False
+        listaPuntos=list()
+        dato=arcpy.SelectLayerByLocation_management(self.fileArboles,"WITHIN_A_DISTANCE",self.fileAuxi,"100 Centimeters","NEW_SELECTION")
+        nroPuntos=int(arcpy.GetCount_management(self.fileArboles)[0])
+        print("total Seleccionados: {}".format(arcpy.GetCount_management(self.fileArboles)[0]))
+        for i in range(nroPuntos):
+            fid=dato.getOutput(0).getSelectionSet()[i]
+            with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],""""FID"={}""".format(fid)) as cursor:
+                for row in cursor:
+                    if row[1]!=-1:
+                        listaPuntos.append((fid,row[0],row[1],row[2]))
+        print("Los Puntos Son: {}".format(listaPuntos))
+        return listaPuntos,len(listaPuntos)
     def aumentarDpunto(self,punto,distancia,angulo):
         xa=punto[0]+distancia*math.cos(angulo)
         ya=punto[1]+distancia*math.sin(angulo)
@@ -315,3 +328,35 @@ class BusquedaPuntoParalelo(object):
                 print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
                 #y=punto[1]+distancia*math.sin(angulo)
                 return (x,y)
+
+prueba=BusquedaPuntoParalelo()
+
+def onClick():
+    runpp=True
+    prueba.maxNroLine()
+    if(prueba.nrLinea!=0):
+        try:
+            while runpp:
+                pp,np=prueba.getSeleccion()
+                prueba.runProg=True
+                prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+                prueba.setNroLine(pp[0][0],0,2)
+                prueba.setNroLine(pp[1][0],0,0)
+                prueba.busquedaLineal()
+                prueba.runProg=True
+                prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+                prueba.colocarPunto(pp[0][1],pp[1][1])
+                ppp,pn=prueba.getSeleccion2()
+                if pp[0][0]==ppp[0][0]:
+                    prueba.setNroLine(pp[0][0],0,0)
+                    prueba.setNroLine(pp[1][0],0,2)
+                else:
+                    prueba.setNroLine(pp[1][0],0,0)
+                    prueba.setNroLine(pp[0][0],0,2)
+                prueba.busquedaLineal()
+                prueba.colocarPunto(pp[0][1],pp[1][1])
+                prueba.runPara=True
+                prueba.busquedaParalela(0)
+        except Exception as ex:
+            pythonaddins.MessageBox (ex, "Error") 
+            runpp=False
