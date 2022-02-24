@@ -65,8 +65,17 @@ class BusquedaPuntoParalelo(object):
         print("Los Puntos Son: {}".format(listaPuntos))
         return listaPuntos,nroPuntos
     def areaEnTrabajo(self):
-        arcpy.SelectLayerByLocation_management(self.fileEjecucion,"INTERSECT",self.fileAuxi,"","NEW_SELECTION")
-        nroPuntos=int(arcpy.GetCount_management(self.fileEjecucion)[0])
+        arcpy.SelectLayerByLocation_management(self.fileAuxi,"INTERSECT",self.fileEjecucion,"","NEW_SELECTION")
+        nroPuntos=int(arcpy.GetCount_management(self.fileAuxi)[0])
+        print(nroPuntos)
+        if nroPuntos<=1:
+            return  False
+        else:
+            return True
+    def areaEnTrabajo2(self):
+        arcpy.SelectLayerByLocation_management(self.fileAuxi,"INTERSECT",self.fileEjecucion,"","NEW_SELECTION")
+        nroPuntos=int(arcpy.GetCount_management(self.fileAuxi)[0])
+        print(nroPuntos)
         if nroPuntos==0:
             return  False
         else:
@@ -184,8 +193,15 @@ class BusquedaPuntoParalelo(object):
                     self.punto2=self.punto1
                     self.valido=True
             elif np==1:
-                distancia+=0.2
-                self.valido=True
+                if distancia<10:
+                    distancia+=0.2
+                    self.valido=True
+                else:
+                    self.setNroLine(self.puntos[0][0],self.nrLinea,1)
+                    self.valido=False
+                    self.limpiarAux()
+                    self.clearProg()
+                    self.runProg=False
             elif np==0:
                 self.runProg=False
                 self.setNroLine(puntos[0][0],self.nrLinea,1)
@@ -230,7 +246,7 @@ class BusquedaPuntoParalelo(object):
                     self.clearProg()
         self.limpiarAux()
     def busquedaParalela(self,arriba):
-        while self.runPara and self.areaEnTrabajo():
+        while self.runPara and self.areaEnTrabajo2():
             puntosP,npP=self.getSeleccion2()
             if npP==2:
                 busco=True
@@ -242,14 +258,14 @@ class BusquedaPuntoParalelo(object):
                 angulo=self.getAngulo(puntosP[0][1],puntosP[1][1])
                 m=self.getPendiente(puntosP[0][1],puntosP[1][1])
                 distaP=distancia
-                while not self.estaEnArea() and busco and self.areaEnTrabajo():
+                while not self.estaEnArea() and busco and self.areaEnTrabajo2():
                     punto=self.getPuntoParalelo(puntosP[0][1],distaP,m,arriba)
                     self.agregarPunto(punto)
                     disP=distancia
                     p,npG=self.getSeleccion()
                     if npG==1:
                         busco2=True
-                        if self.areaEnTrabajo():
+                        if self.areaEnTrabajo2():
                             while busco2 and not self.estaEnArea():
                                 pb=self.aumentarDpunto(p[0][1],disP,angulo)
                                 self.agregarPunto(pb)
@@ -348,13 +364,13 @@ def onClick():
                 prueba.colocarPunto(pp[0][1],pp[1][1])
                 ppp,pn=prueba.getSeleccion2()
                 if pp[0][0]==ppp[0][0]:
-                    prueba.setNroLine(pp[0][0],0,0)
-                    prueba.setNroLine(pp[1][0],0,2)
+                    prueba.setNroLine(ppp[0][0],0,0)
+                    prueba.setNroLine(ppp[1][0],0,2)
                 else:
-                    prueba.setNroLine(pp[1][0],0,0)
-                    prueba.setNroLine(pp[0][0],0,2)
+                    prueba.setNroLine(ppp[1][0],0,0)
+                    prueba.setNroLine(ppp[0][0],0,2)
                 prueba.busquedaLineal()
-                prueba.colocarPunto(pp[0][1],pp[1][1])
+                prueba.colocarPunto(ppp[0][1],ppp[1][1])
                 prueba.runPara=True
                 prueba.busquedaParalela(0)
         except Exception as ex:
