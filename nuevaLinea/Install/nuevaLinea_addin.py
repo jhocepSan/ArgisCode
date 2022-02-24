@@ -1,7 +1,5 @@
 import arcpy,os,math
 import pythonaddins
-import arcpy,math
-import pythonaddins
 print(os.path)
 class BusquedaPuntoParalelo(object):
     def __init__(self):
@@ -55,7 +53,7 @@ class BusquedaPuntoParalelo(object):
                 for row in cursor:
                     if row[1]!=-1 and row[2]!=1:
                         listaPuntos.append((fid,row[0],row[1],row[2]))
-                    elif (row[1]!=self.nrLinea or row[1]==self.nrLinea) and row[2]==1 and row[1]!=-1:
+                    elif (row[1]!=self.nrLinea and row[1]!=0) and row[2]==1 and row[1]!=-1:
                         otroP=True
         if(nroPuntos>=2 and len(listaPuntos)==1 and otroP==True):
             print("Encontre puntos que ya son visitados")
@@ -64,6 +62,16 @@ class BusquedaPuntoParalelo(object):
             nroPuntos=len(listaPuntos)
         print("Los Puntos Son: {}".format(listaPuntos))
         return listaPuntos,nroPuntos
+    def areaEnTrabajo(self):
+        if self.fileEjecucion!='':
+            arcpy.SelectLayerByLocation_management(self.fileEjecucion,"INTERSECT",self.fileAuxi,"","NEW_SELECTION")
+            nroPuntos=int(arcpy.GetCount_management(self.fileEjecucion)[0])
+            if nroPuntos==0:
+                return  False
+            else:
+                return True
+        else:
+            return True
     def dentroDeArea(self,capa1,capa2):
         arcpy.SelectLayerByLocation_management(capa1,"INTERSECT",capa2,"","NEW_SELECTION")
         nroPuntos=int(arcpy.GetCount_management(capa1)[0])
@@ -115,20 +123,40 @@ class BusquedaPuntoParalelo(object):
         arcpy.RefreshActiveView()
     def validarAngulo(self):
         anguloNuevo=self.getAngulo(self.punto1[1],self.punto2[1])
-        print("alfa nuevo: {}, alfa antiguo {}".format(anguloNuevo,self.angulo))
-        if abs(anguloNuevo-self.angulo)<=0.9:
-            print("..... Nos quedamos con el nuevo angulo")
-            self.angulo=anguloNuevo
+        diff=abs(anguloNuevo-self.angulo)
+        print("alfa nuevo: {}, alfa antiguo {}, diferencia: {}".format(anguloNuevo,self.angulo,diff))
+        if (anguloNuevo<0 and self.angulo<0) or (anguloNuevo>0 and self.angulo>0):
+            if diff<=0.29:
+                print("..... Nos quedamos con el nuevo angulo")
+                self.angulo=anguloNuevo
+            elif diff>0.29 and diff<=0.34:
+                print("..... Te estas desiviando reduciremos el angulo .....")
+                if self.angulo>0:
+                    self.angulo=self.angulo-0.1
+                else:
+                    self.angulo=self.angulo+0.1
+        else:
+            print("... transicion de angulos ...")
+            if anguloNuevo<0:
+                self.angulo=anguloNuevo-0.08
+            else:
+                self.angulo=anguloNuevo+0.08
+    def anguloCorrecto(self):
+        anguloNuevo=self.getAngulo(self.punto1[1],self.punto2[1])
+        if abs(anguloNuevo-self.angulo)>0.3 and ((anguloNuevo<0 and self.angulo<0) or (anguloNuevo>0 and self.angulo>0)):
+            return False
+        else:
+            return True
     def busquedaLineal(self):
         #formato puntos [fid,punto,nro_linea,valido]
         n=0
         distancia=0
         angulo=0
-        while self.runProg:
+        while self.runProg and self.areaEnTrabajo():
             puntos,np=self.getSeleccion()
             if np==2:
                 distancia=self.getDistancia(puntos[0][1],puntos[1][1])
-                if distancia<self.distancia and distancia>1:
+                if distancia<self.distancia and distancia>2:
                     self.distancia=distancia
                 else:
                     distancia=self.distancia
@@ -143,11 +171,19 @@ class BusquedaPuntoParalelo(object):
                     self.punto2=puntos[0]
                 print("angulo: {} , distancia: {}".format(angulo,distancia))
                 print("......modificamos valido, nr_linea........")
-                self.validarAngulo()
-                self.setNroLine(self.punto1[0],self.nrLinea,1)
-                self.setNroLine(self.punto2[0],0,2)
-                self.valido=True
-                n+=1
+                if self.anguloCorrecto():
+                    self.validarAngulo()
+                    self.setNroLine(self.punto1[0],self.nrLinea,1)
+                    self.setNroLine(self.punto2[0],0,2)
+                    self.valido=True
+                    n+=1
+                else:
+                    print("---no valido ---")
+                    self.validarAngulo()
+                    self.setNroLine(self.punto2[0],-1,1)
+                    self.setNroLine(self.punto1[0],0,2)
+                    self.punto2=self.punto1
+                    self.valido=True
             elif np==1:
                 distancia+=0.2
                 self.valido=True
@@ -185,72 +221,53 @@ class BusquedaPuntoParalelo(object):
                 pythonaddins.MessageBox ("Encontre cuatro puntos seguidos", "Informacion")
                 self.runProg=False
             if self.valido:
-                newP=self.getPuntoSugerido(distancia,angulo)
+                newP=self.getPuntoSugerido(distancia,self.angulo)
                 self.colocarPunto(self.punto2[1],newP)
                 self.valido=False
-                if self.estaEnArea()==True:
+                if self.estaEnArea()==True and not self.areaEnTrabajo():
                     self.setNroLine(self.punto2[0],self.nrLinea,1)
                     self.runProg=False
                     self.limpiarAux()
                     self.clearProg()
         self.limpiarAux()
-    def busquedaParalela(self):
-        while self.runPara:
+    def busquedaParalela(self,arriba):
+        while self.runPara and self.areaEnTrabajo():
             puntosP,npP=self.getSeleccion()
             if npP==2:
-                self.clearProg()
-                self.runProg=True
-                #busqueda derecha
-                self.setNroLine(puntosP[0][0],0,2)
-                self.setNroLine(puntosP[1][0],0,0)
-                self.distancia=self.getAngulo(puntosP[0][1],puntosP[1][1])
-                self.angulo=self.getAngulo(puntosP[0][1],puntosP[1][1])
-                try:
-                    print("....Busqueda De un lado ........")
-                    self.busquedaLineal()
-                except Exception as err:
-                    pythonaddins.MessageBox ("ocurrio un Error: {}".format(err), "Informacion")
-                    self.runPara=False
-                '''#busqueda izquierda
-                self.clearProg()
-                self.runProg=True
-                self.colocarPunto(puntosP[1][1],puntosP[0][1])
-                puntosP,npP=self.getSeleccion()
-                self.setNroLine(puntosP[1][0],0,2)
-                self.setNroLine(puntosP[0][0],0,0)
-                self.distancia=self.getAngulo(puntosP[1][1],puntosP[0][1])
-                self.angulo=self.getAngulo(puntosP[1][1],puntosP[0][1])
-                try:
-                    print("....Busqueda De otro lado ........")
-                    self.busquedaLineal()
-                except Exception as err:
-                    pythonaddins.MessageBox ("ocurrio un Error: {}".format(err), "Informacion")
-                    self.runPara=False'''
                 busco=True
                 distancia=self.getDistancia(puntosP[0][1],puntosP[1][1])
+                if distancia<self.distancia and distancia>1.9:
+                    self.distancia=distancia
+                else:
+                    distancia=self.distancia
                 angulo=self.getAngulo(puntosP[0][1],puntosP[1][1])
                 m=self.getPendiente(puntosP[0][1],puntosP[1][1])
                 distaP=distancia
-                while not self.estaEnArea() and busco:
-                    punto=self.getPuntoParalelo(puntosP[0][1],distaP,m,0)
+                while not self.estaEnArea() and busco and self.areaEnTrabajo():
+                    punto=self.getPuntoParalelo(puntosP[0][1],distaP,m,arriba)
                     self.agregarPunto(punto)
                     disP=distancia
                     p,npG=self.getSeleccion()
                     if npG==1:
                         busco2=True
-                        while busco2 and not self.estaEnArea():
-                            pb=self.aumentarDpunto(p[0][1],disP,angulo)
-                            self.agregarPunto(pb)
-                            ppp,npp=self.getSeleccion()
-                            if npp==1:
-                                busco2=False
-                                busco=False
-                                self.colocarPunto(ppp[0][1],p[0][1])
-                                self.nrLinea+=1
-                            elif npp==2:
-                                self.setNroLine(ppp[0][0],-1,1)
-                            else:
-                                disP+=0.2
+                        if self.areaEnTrabajo():
+                            while busco2 and not self.estaEnArea():
+                                pb=self.aumentarDpunto(p[0][1],disP,angulo)
+                                self.agregarPunto(pb)
+                                ppp,npp=self.getSeleccion()
+                                if npp==1:
+                                    busco2=False
+                                    busco=False
+                                    self.colocarPunto(ppp[0][1],p[0][1])
+                                    self.nrLinea+=1
+                                    self.runPara=False
+                                elif npp==2:
+                                    self.setNroLine(ppp[0][0],-1,1)
+                                else:
+                                    disP+=0.2
+                        else:
+                            self.runPara=False
+                            self.limpiarAux()
                     elif npG==2:
                         self.setNroLine(p[0][0],-1,1)
                     else:
@@ -274,19 +291,34 @@ class BusquedaPuntoParalelo(object):
     def getPuntoParalelo(self,punto,distancia,pendiente,tipo):
         #x=punto[0]+distancia*math.cos(angulo)
         if tipo==0:
-            x=(distancia/math.sqrt((1/math.pow(pendiente,2))+1))+punto[0]
-            y=((-x+punto[0])/pendiente)+punto[1]
-            print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
-            #y=punto[1]+distancia*math.sin(angulo)
-            return (x,y)
+            if pendiente<0:
+                x=(distancia/math.sqrt((1/math.pow(pendiente,2))+1))+punto[0]
+                y=((-x+punto[0])/pendiente)+punto[1]
+                print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
+                #y=punto[1]+distancia*math.sin(angulo)
+                return (x,y)
+            else:
+                x=-(distancia/math.sqrt((1/math.pow(pendiente,2))+1))+punto[0]
+                y=((-x+punto[0])/pendiente)+punto[1]
+                print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
+                #y=punto[1]+distancia*math.sin(angulo)
+                return (x,y)
         else:
-            x=-(distancia/math.sqrt((1/math.pow(pendiente,2))+1))+punto[0]
-            y=((-x+punto[0])/pendiente)+punto[1]
-            print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
-            #y=punto[1]+distancia*math.sin(angulo)
-            return (x,y)
-
+            if pendiente<0:
+                x=-(distancia/math.sqrt((1/math.pow(pendiente,2))+1))+punto[0]
+                y=((-x+punto[0])/pendiente)+punto[1]
+                print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
+                #y=punto[1]+distancia*math.sin(angulo)
+                return (x,y)
+            else:
+                x=(distancia/math.sqrt((1/math.pow(pendiente,2))+1))+punto[0]
+                y=((-x+punto[0])/pendiente)+punto[1]
+                print("nuevo punto paralelo: {}, {} tipo 0".format(x,y))
+                #y=punto[1]+distancia*math.sin(angulo)
+                return (x,y)
 prueba=BusquedaPuntoParalelo()
+puntos=[]
+ejecucion=True
 class NumeroLinea(object):
     def __init__(self):
         self.mxd = arcpy.mapping.MapDocument("CURRENT")
@@ -481,11 +513,25 @@ class ButtonEjecutar(object):
         prueba.maxNroLine()
         if(prueba.nrLinea!=0):
             try:
-                prueba.clearProg()
-                prueba.runPara=True
-                prueba.busquedaParalela()
+                while ejecucion:
+                    pp,np=prueba.getSeleccion()
+                    prueba.runProg=True
+                    prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+                    prueba.setNroLine(pp[0][0],0,2)
+                    prueba.setNroLine(pp[1][0],0,0)
+                    prueba.busquedaLineal()
+                    prueba.runProg=True
+                    prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+                    prueba.colocarPunto(pp[0][1],pp[1][1])
+                    prueba.setNroLine(pp[0][0],0,0)
+                    prueba.setNroLine(pp[1][0],0,2)
+                    prueba.busquedaLineal()
+                    prueba.colocarPunto(pp[0][1],pp[1][1])
+                    prueba.runPara=True
+                    prueba.busquedaParalela(0)
             except Exception as ex:
-                pythonaddins.MessageBox (ex, "Error")    
+                pythonaddins.MessageBox (ex, "Error") 
+                ejecucion=False   
         else:
             pythonaddins.MessageBox ("Primero Elija el numero de linea", "Error")
 class ButtonLlenarCampo(object):
@@ -511,6 +557,8 @@ class ButtonActivar(object):
             descartivar.enabled=True
             ejecutar.enabled=True
             llenarCampo.enabled=True
+            ejecucion=True
+            puntos=[]
         else:
             pythonaddins.MessageBox("Seleccione las capas de trabajo","Error")
             selecPunto.enabled=False
@@ -549,6 +597,7 @@ class SelectPunto(object):
         if(filenm!=""):
             with arcpy.da.InsertCursor(filenm,"SHAPE@XY") as cursor:
                 cursor.insertRow([(x,y)])
+                puntos.append((x,y))
                 self.cont+=1
             del cursor
             arcpy.RefreshActiveView()
