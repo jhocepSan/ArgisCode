@@ -509,11 +509,12 @@ class ButtonEjecutar(object):
     def __init__(self):
         self.enabled = False
         self.checked = False
+        self.runPP=True
     def onClick(self):
         prueba.maxNroLine()
         if(prueba.nrLinea!=0):
             try:
-                while ejecucion:
+                while self.runPP:
                     pp,np=prueba.getSeleccion()
                     prueba.runProg=True
                     prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
@@ -531,7 +532,7 @@ class ButtonEjecutar(object):
                     prueba.busquedaParalela(0)
             except Exception as ex:
                 pythonaddins.MessageBox (ex, "Error") 
-                ejecucion=False   
+                self.runPP=False   
         else:
             pythonaddins.MessageBox ("Primero Elija el numero de linea", "Error")
 class ButtonLlenarCampo(object):
