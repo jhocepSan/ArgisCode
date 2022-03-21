@@ -5,11 +5,11 @@ import pythonaddins
 print(os.path)
 class BusquedaPuntoParalelo(object):
     def __init__(self):
-        self.fileArboles="454_arboles"
+        self.fileArboles="1065_san_jorge_arboles_merge"
         self.fileAuxi="auxiliar"
-        self.fileCamino="454_caminos"
-        self.fileNoCultivable="454_no_cultivable"
-        self.fileDesechos="31_desechos"
+        self.fileCamino="1065_san_jorge_caminos"
+        self.fileNoCultivable="1065_san_jorge_area_nocultivable"
+        self.fileDesechos="1065_san_jorge_desechos_depurados"
         self.fileEjecucion=""
         self.nrLinea=0
         self.runPara=False
@@ -48,15 +48,16 @@ class BusquedaPuntoParalelo(object):
         listaPuntos=list()
         dato=arcpy.SelectLayerByLocation_management(self.fileArboles,"WITHIN_A_DISTANCE",self.fileAuxi,"100 Centimeters","NEW_SELECTION")
         nroPuntos=int(arcpy.GetCount_management(self.fileArboles)[0])
-        print("total Seleccionados: {}".format(arcpy.GetCount_management(self.fileArboles)[0]))
+        print("total Seleccionados no filtrados: {}".format(arcpy.GetCount_management(self.fileArboles)[0]))
         for i in range(nroPuntos):
             fid=dato.getOutput(0).getSelectionSet()[i]
-            with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],""""FID"={}""".format(fid)) as cursor:
+            with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],'"FID"={} AND "nro_linea"={}'.format(fid,0)) as cursor:
                 for row in cursor:
                     if row[1]!=-1 and row[2]!=1:
                         listaPuntos.append((fid,row[0],row[1],row[2]))
                     elif (row[1]!=self.nrLinea and row[1]!=0) and row[2]==1 and row[1]!=-1:
                         otroP=True
+        print("puntos filtrados: {} ,tamaño: {}".format(listaPuntos,len(listaPuntos)))
         if(nroPuntos>=2 and len(listaPuntos)==1 and otroP==True):
             print("Encontre puntos que ya son visitados")
             nroPuntos=0
@@ -64,22 +65,6 @@ class BusquedaPuntoParalelo(object):
             nroPuntos=len(listaPuntos)
         print("Los Puntos Son: {}".format(listaPuntos))
         return listaPuntos,nroPuntos
-    def modificarLinea(self):
-        self.maxNroLine()
-        otroP=False
-        listaPuntos=list()
-        dato=arcpy.SelectLayerByLocation_management(self.fileArboles,"WITHIN_A_DISTANCE",self.fileAuxi,"100 Centimeters","NEW_SELECTION")
-        nroPuntos=int(arcpy.GetCount_management(self.fileArboles)[0])
-        print("total Seleccionados: {}".format(arcpy.GetCount_management(self.fileArboles)[0]))
-        for i in range(nroPuntos):
-            fid=dato.getOutput(0).getSelectionSet()[i]
-            with arcpy.da.UpdateCursor(self.fileArboles, ["nro_linea","valido"],""""FID"={}""".format(fid)) as curs:
-                for row in curs:
-                    row[0] = self.nrLinea
-                    row[1] = 1
-                    curs.updateRow(row)
-        print("correcto funcionamiento")
-        prueba.limpiarAux()
     def areaEnTrabajo(self):
         arcpy.SelectLayerByLocation_management(self.fileAuxi,"INTERSECT",self.fileEjecucion,"","NEW_SELECTION")
         nroPuntos=int(arcpy.GetCount_management(self.fileAuxi)[0])
@@ -107,8 +92,8 @@ class BusquedaPuntoParalelo(object):
         datos=list()
         if self.fileCamino!='':
             datos.append(self.dentroDeArea(self.fileCamino,self.fileAuxi))
-        #if self.fileDesechos!='':
-        #    datos.append(self.dentroDeArea(self.fileDesechos,self.fileAuxi))
+        if self.fileDesechos!='':
+            datos.append(self.dentroDeArea(self.fileDesechos,self.fileAuxi))
         if self.fileNoCultivable!='':
             datos.append(self.dentroDeArea(self.fileNoCultivable,self.fileAuxi))
         d=False
@@ -210,7 +195,7 @@ class BusquedaPuntoParalelo(object):
                     self.valido=True
             elif np==1:
                 if distancia<10:
-                    distancia+=0.9
+                    distancia+=1.2
                     self.valido=True
                 else:
                     self.setNroLine(puntos[0][0],self.nrLinea,1)
@@ -224,36 +209,17 @@ class BusquedaPuntoParalelo(object):
                 self.limpiarAux()
                 self.clearProg()
             elif np==3:
-                pivot=[]
-                listaP=[]
-                for p in puntos:
-                    if p[3]==2:
-                        pivot=p
-                    else:
-                        listaP.append(p)
-                d1=self.getDistancia(pivot[1],listaP[0][1])
-                d2=self.getDistancia(pivot[1],listaP[1][1])
-                if abs(d1-self.distancia)<abs(d2-self.distancia):
-                    self.setNroLine(listaP[1][0],-1,1)
-                    listaP.pop(1)
-                else:
-                    self.setNroLine(listaP[0][0],-1,1)
-                    listaP.pop(0)
-                self.punto1=pivot
-                self.punto2=listaP[0]
-                self.validarAngulo()
-                print("---Seteamos los puntos que se visito")
-                self.setNroLine(self.punto1[0],self.nrLinea,1)
-                self.setNroLine(self.punto2[0],0,2)
-                self.runProg=True
-                n+=1
+                self.runProg=False
             elif np==4:
-                self.limpiarAux()
+                #self.limpiarAux()
                 pythonaddins.MessageBox ("Encontre cuatro puntos seguidos", "Informacion")
                 self.runProg=False
             if self.valido:
-                newP=self.getPuntoSugerido(distancia,self.angulo)
-                self.colocarPunto(self.punto2[1],newP)
+                self.limpiarAux()
+                self.colocarPuntoN(self.punto2[1])
+                for i in range(1,5):
+                    newP=self.getPuntoSugerido(i*distancia,self.angulo)
+                    self.colocarPuntoN(newP)
                 self.valido=False
                 if self.estaEnArea()==True or not self.areaEnTrabajo():
                     self.setNroLine(self.punto2[0],self.nrLinea,1)
@@ -261,6 +227,10 @@ class BusquedaPuntoParalelo(object):
                     self.limpiarAux()
                     self.clearProg()
         self.limpiarAux()
+    def colocarPuntoN(self,punto):
+        with arcpy.da.InsertCursor(self.fileAuxi,"SHAPE@XY") as cursor:
+            cursor.insertRow([punto])
+        arcpy.RefreshActiveView()
     def busquedaParalela(self,arriba):
         while self.runPara and self.areaEnTrabajo2():
             puntosP,npP=self.getSeleccion2()
@@ -296,7 +266,7 @@ class BusquedaPuntoParalelo(object):
                                     self.setNroLine(ppp[0][0],-1,1)
                                 else:
                                     if disP<=10:
-                                        disP+=0.4
+                                        disP+=0.9
                                     else:
                                         self.runPara=False
                                         self.limpiarAux()
@@ -306,7 +276,7 @@ class BusquedaPuntoParalelo(object):
                     elif npG==2:
                         self.setNroLine(p[0][0],-1,1)
                     else:
-                        distaP+=0.4
+                        distaP+=0.9
             elif npP==3:
                 self.runPara=False
                 self.limpiarAux()
@@ -316,7 +286,7 @@ class BusquedaPuntoParalelo(object):
     def getSeleccion2(self):
         otroP=False
         listaPuntos=list()
-        dato=arcpy.SelectLayerByLocation_management(self.fileArboles,"WITHIN_A_DISTANCE",self.fileAuxi,"130 Centimeters","NEW_SELECTION")
+        dato=arcpy.SelectLayerByLocation_management(self.fileArboles,"WITHIN_A_DISTANCE",self.fileAuxi,"100 Centimeters","NEW_SELECTION")
         nroPuntos=int(arcpy.GetCount_management(self.fileArboles)[0])
         print("total Seleccionados: {}".format(arcpy.GetCount_management(self.fileArboles)[0]))
         for i in range(nroPuntos):
@@ -402,3 +372,13 @@ def onClick():
         except Exception as ex:
             pythonaddins.MessageBox (ex, "Error") 
             runpp=False
+def onclickLineal():
+    prueba.runProg=True
+    pp,p=prueba.getSeleccion()
+    prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+    if pp[0][2]==2:
+        prueba.angulo=prueba.getAngulo(pp[0][1],pp[1][1])
+    else:
+        prueba.angulo=prueba.getAngulo(pp[1][1],pp[0][1])
+
+    prueba.busquedaLineal()

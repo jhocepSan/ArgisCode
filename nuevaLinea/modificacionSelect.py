@@ -1,14 +1,15 @@
-import arcpy,os,math
-import pythonaddins
+import arcpy,math,os,time
+import pythonaddins 
 
+print(os.path)
 class BusquedaPuntoParalelo(object):
     def __init__(self):
-        self.fileArboles=""
-        self.fileAuxi=""
-        self.fileCamino=""
-        self.fileNoCultivable=""
-        self.fileDesechos=""
-        self.fileEjecucion=""
+        self.fileArboles="31_arboles"
+        self.fileAuxi="auxiliar"
+        self.fileCamino="31_caminos"
+        self.fileNoCultivable="31_no_cultivable"
+        self.fileDesechos="31_desechos"
+        self.fileEjecucion="ejecuciona"
         self.nrLinea=0
         self.runPara=False
         self.distancia=10000
@@ -49,19 +50,26 @@ class BusquedaPuntoParalelo(object):
         print("total Seleccionados: {}".format(arcpy.GetCount_management(self.fileArboles)[0]))
         for i in range(nroPuntos):
             fid=dato.getOutput(0).getSelectionSet()[i]
-            with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],""""FID"={}""".format(fid)) as cursor:
+            with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],'"FID"={} and "nro_linea"={}'.format(fid,0)) as cursor:
                 for row in cursor:
-                    if row[1]!=-1 and row[2]!=1:
-                        listaPuntos.append((fid,row[0],row[1],row[2]))
-                    elif (row[1]!=self.nrLinea and row[1]!=0) and row[2]==1 and row[1]!=-1:
-                        otroP=True
-        if(nroPuntos>=2 and len(listaPuntos)==1 and otroP==True):
-            print("Encontre puntos que ya son visitados")
-            nroPuntos=0
-        else:
-            nroPuntos=len(listaPuntos)
-        print("Los Puntos Son: {}".format(listaPuntos))
+                    listaPuntos.append((fid,row[0],row[1],row[2]))
+        nroPuntos=len(listaPuntos)
+        print("Los Puntos Son: {} tamanio: {}".format(listaPuntos,nroPuntos))
         return listaPuntos,nroPuntos
+    def getSelccion3(self):
+        otroP=False
+        listaPuntos=list()
+        dato=arcpy.SelectLayerByLocation_management(self.fileArboles,"WITHIN_A_DISTANCE",self.fileAuxi,"2.5 Meters","NEW_SELECTION")
+        nroPuntos=int(arcpy.GetCount_management(self.fileArboles)[0])
+        for i in range(nroPuntos):
+            fid=dato.getOutput(0).getSelectionSet()[i]
+            print(fid)
+            with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],""""FID"={} """.format(fid)) as cursor:
+                for row in cursor:
+                    if row[1]==0:
+                        listaPuntos.append((fid,row[0],row[1],row[2]))
+        print("total Seleccionados: {} # puntos: {}".format(listaPuntos,len(listaPuntos)))
+        return listaPuntos,len(listaPuntos)
     def areaEnTrabajo(self):
         arcpy.SelectLayerByLocation_management(self.fileAuxi,"INTERSECT",self.fileEjecucion,"","NEW_SELECTION")
         nroPuntos=int(arcpy.GetCount_management(self.fileAuxi)[0])
@@ -135,7 +143,7 @@ class BusquedaPuntoParalelo(object):
             if diff<=0.29:
                 print("..... Nos quedamos con el nuevo angulo")
                 self.angulo=anguloNuevo
-            elif diff>0.29 and diff<=0.34:
+            elif diff>0.29 and diff<=0.44:
                 print("..... Te estas desiviando reduciremos el angulo .....")
                 if self.angulo>0:
                     self.angulo=self.angulo-0.1
@@ -149,10 +157,69 @@ class BusquedaPuntoParalelo(object):
                 self.angulo=anguloNuevo+0.08
     def anguloCorrecto(self):
         anguloNuevo=self.getAngulo(self.punto1[1],self.punto2[1])
-        if abs(anguloNuevo-self.angulo)>0.4 and ((anguloNuevo<0 and self.angulo<0) or (anguloNuevo>0 and self.angulo>0)):
+        if abs(anguloNuevo-self.angulo)>0.6 and ((anguloNuevo<0 and self.angulo<0) or (anguloNuevo>0 and self.angulo>0)):
             return False
         else:
             return True
+    def busquedaLineal2(self):
+        distancia=self.distancia
+        while self.runProg and self.estaEnArea:
+            puntos,np=self.getSelccion3()
+            if np==1:
+                print("hacemos colocar punto")
+                self.agregarPunto(puntos[0][1])
+                print("fin")
+                self.setNroLine(puntos[0][0],self.nrLinea,1)
+                self.setNroLine(self.punto2[0],self.nrLinea,2)
+                distancia=self.getDistancia(self.punto2[1],puntos[0][1])
+                #valido la distancia
+                if distancia<self.distancia and distancia>2:
+                    self.distancia=distancia
+                #valido el angulo
+                self.punto1=self.punto2
+                self.punto2=puntos[0]
+                self.validarAngulo()
+                self.valido=True
+            elif np==2:
+                t1=self.getAngulo(self.punto2[1],puntos[0][1])
+                t2=self.getAngulo(self.punto2[1],puntos[1][1])
+                print("angulo1:{}---angulo2: {}"(t1,t2))
+                d1=self.getDistancia(self.punto2[1],puntos[0][1])
+                d2=self.getDistancia(self.punto2[1],puntos[1][1])
+                self.setNroLine(self.punto2[0],self.nrLinea,1)
+                if abs(d1-self.distancia)<abs(d2-self.distancia):
+                    self.agregarPunto(puntos[0][1])
+                    self.setNroLine(puntos[0][0],self.nrLinea,2)
+                    self.setNroLine(puntos[1][0],-1,1)
+                    self.punto1=self.punto2
+                    self.punto2=puntos[0]
+                else:
+                    self.agregarPunto(puntos[1][1])
+                    self.setNroLine(puntos[0][0],-1,1)
+                    self.setNroLine(puntos[1][0],self.nrLinea,2)
+                self.valido=True
+            elif np==0:
+                print("entro cero")
+                if distancia<10:
+                    print(self.angulo)
+                    newP=self.getPuntoSugerido(distancia,self.angulo)
+                    self.agregarPunto(newP)
+                    distancia=distancia+2
+                    self.valido=True
+                else:
+                    self.setNroLine(puntos[0][0],self.nrLinea,1)
+                    self.valido=False
+                    self.limpiarAux()
+                    self.clearProg()
+                    self.runProg=False
+            if self.valido:
+                print("validamos")
+                self.valido=False
+                if self.estaEnArea()==True or not self.areaEnTrabajo():
+                    self.setNroLine(self.punto2[0],self.nrLinea,1)
+                    self.runProg=False
+                    self.limpiarAux()
+                    self.clearProg()
     def busquedaLineal(self):
         #formato puntos [fid,punto,nro_linea,valido]
         n=0
@@ -192,7 +259,7 @@ class BusquedaPuntoParalelo(object):
                     self.valido=True
             elif np==1:
                 if distancia<10:
-                    distancia+=0.4
+                    distancia+=1.2
                     self.valido=True
                 else:
                     self.setNroLine(puntos[0][0],self.nrLinea,1)
@@ -277,14 +344,18 @@ class BusquedaPuntoParalelo(object):
                                 elif npp==2:
                                     self.setNroLine(ppp[0][0],-1,1)
                                 else:
-                                    disP+=0.4
+                                    if disP<=10:
+                                        disP+=0.9
+                                    else:
+                                        self.runPara=False
+                                        self.limpiarAux()
                         else:
                             self.runPara=False
                             self.limpiarAux()
                     elif npG==2:
                         self.setNroLine(p[0][0],-1,1)
                     else:
-                        distaP+=0.4
+                        distaP+=0.9
             elif npP==3:
                 self.runPara=False
                 self.limpiarAux()
@@ -301,7 +372,7 @@ class BusquedaPuntoParalelo(object):
             fid=dato.getOutput(0).getSelectionSet()[i]
             with arcpy.da.SearchCursor(self.fileArboles,["SHAPE@XY","nro_linea","valido"],""""FID"={}""".format(fid)) as cursor:
                 for row in cursor:
-                    if row[1]!=-1 and row[2]==0:
+                    if row[1]!=-1:
                         listaPuntos.append((fid,row[0],row[1],row[2]))
         print("Los Puntos Son: {}".format(listaPuntos))
         return listaPuntos,len(listaPuntos)
@@ -311,9 +382,16 @@ class BusquedaPuntoParalelo(object):
         return (xa,ya)
     def agregarPunto(self,punto):
         arcpy.DeleteFeatures_management(self.fileAuxi)
-        with arcpy.da.InsertCursor(self.fileAuxi,"SHAPE@XY") as cursor:
-            cursor.insertRow([punto])
-        arcpy.RefreshActiveView()
+        cursor=arcpy.InsertCursor(self.fileAuxi)
+        feature = cursor.newRow()
+        vertex = arcpy.CreateObject("Point")
+        vertex.X = punto[0]
+        vertex.Y = punto[1]
+        feature.shape = vertex
+        cursor.insertRow(feature)
+        #cursor.insertRow([punto])
+        del(cursor)
+        #arcpy.RefreshActiveView()
     def getPuntoParalelo(self,punto,distancia,pendiente,tipo):
         #x=punto[0]+distancia*math.cos(angulo)
         if tipo==0:
@@ -344,327 +422,49 @@ class BusquedaPuntoParalelo(object):
                 return (x,y)
 
 prueba=BusquedaPuntoParalelo()
-puntos=[]
-ejecucion=True
-class NumeroLinea(object):
-    def __init__(self):
-        self.mxd = arcpy.mapping.MapDocument("CURRENT")
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
-        self.width = 'WWWWWWW'
-        self.target=""
-    def onSelChange(self, selection):
-        print(selection)
-        self.target=selection
-        prueba.filename=self.target
-    def onEditChange(self, text):
-        print(text)
-        self.target=text
-        self.selection=text
-        prueba.fileArboles=self.target
-    def onFocus(self, focused):
-        #Adjust as new layers are added to dataframe
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        if len(lyrs) > 0:
-            self.target = lyrs[0]
-            try:
-                if not self.target == self.selection:
-                    self.target = self.selection
-            except AttributeError:
-                pass
-    def onEnter(self):
-        print("se eligio eso")
-    def refresh(self):
-        pass
-
-class CapaDesechos(object):
-    def __init__(self):
-        self.mxd = arcpy.mapping.MapDocument("CURRENT")
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
-        self.width = 'WWWWWWW'
-        self.target=""
-    def onSelChange(self, selection):
-        print(selection)
-        self.target=selection
-        prueba.fileDesechos=self.target
-    def onEditChange(self, text):
-        print(text)
-        self.target=text
-        self.selection=text
-        prueba.fileDesechos=self.target
-    def onFocus(self, focused):
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        if len(lyrs) > 0:
-            self.target = lyrs[0]
-            try:
-                if not self.target == self.selection:
-                    self.target = self.selection
-            except AttributeError:
-                pass
-    def onEnter(self):
-        print("se eligio eso")
-    def refresh(self):
-        pass
-
-class CapaNoCultivable(object):
-    def __init__(self):
-        self.mxd = arcpy.mapping.MapDocument("CURRENT")
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
-        self.width = 'WWWWWWW'
-        self.target=""
-    def onSelChange(self, selection):
-        print(selection)
-        self.target=selection
-        prueba.fileNoCultivable=self.target
-    def onEditChange(self, text):
-        self.target=text
-        self.selection=text
-        prueba.fileNoCultivable=self.target
-    def onFocus(self, focused):
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        if len(lyrs) > 0:
-            self.target = lyrs[0]
-            try:
-                if not self.target == self.selection:
-                    self.target = self.selection
-            except AttributeError:
-                pass
-    def onEnter(self):
-        print("se eligio eso")
-    def refresh(self):
-        pass
-
-class CapaCamino(object):
-    def __init__(self):
-        self.mxd = arcpy.mapping.MapDocument("CURRENT")
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
-        self.width = 'WWWWWWW'
-        self.target=""
-    def onSelChange(self, selection):
-        self.target=selection
-        prueba.fileCamino=self.target
-    def onEditChange(self, text):
-        self.target=text
-        self.selection=text
-        prueba.fileCamino=self.target
-    def onFocus(self, focused):
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        if len(lyrs) > 0:
-            self.target = lyrs[0]
-            try:
-                if not self.target == self.selection:
-                    self.target = self.selection
-            except AttributeError:
-                pass
-    def onEnter(self):
-        print("se eligio eso")
-    def refresh(self):
-        pass
-class CapaAuxiliar(object):
-    def __init__(self):
-        self.mxd = arcpy.mapping.MapDocument("CURRENT")
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
-        self.width = 'WWWWWWW'
-        self.target=""
-    def onSelChange(self, selection):
-        print(selection)
-        self.target=selection
-        prueba.fileAuxi=self.target
-    def onEditChange(self, text):
-        self.target=text
-        self.selection=text
-        prueba.fileAuxi=self.target
-    def onFocus(self, focused):
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        if len(lyrs) > 0:
-            self.target = lyrs[0]
-            try:
-                if not self.target == self.selection:
-                    self.target = self.selection
-            except AttributeError:
-                pass
-    def onEnter(self):
-        print("se eligio eso")
-    def refresh(self):
-        pass
-class CapaEjecucion(object):
-    def __init__(self):
-        self.mxd = arcpy.mapping.MapDocument("CURRENT")
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        self.dropdownWidth = 'WWWWWWWWWWWWWWWWWWWW'
-        self.width = 'WWWWWWW'
-        self.target=""
-    def onSelChange(self, selection):
-        print(selection)
-        self.target=selection
-        prueba.fileAuxi=self.target
-    def onEditChange(self, text):
-        self.target=text
-        self.selection=text
-        prueba.fileEjecucion=self.target
-    def onFocus(self, focused):
-        lyrs = [i.name for i in arcpy.mapping.ListLayers(self.mxd) if i.isFeatureLayer == True]
-        self.items = lyrs
-        if len(lyrs) > 0:
-            self.target = lyrs[0]
-            try:
-                if not self.target == self.selection:
-                    self.target = self.selection
-            except AttributeError:
-                pass
-    def onEnter(self):
-        print("se eligio eso")
-    def refresh(self):
-        pass
-class ButtonEjecutar(object):
-    """Implementation for nuevaLinea_addin.activar (Button)"""
-    def __init__(self):
-        self.enabled = False
-        self.checked = False
-        self.runpp=True
-    def onClick(self):
-        prueba.maxNroLine()
-        if(prueba.nrLinea!=0):
-            try:
-                while self.runpp:
-                    '''arcpy.env.workspace=os.path.dirname("D:\ArcGisTrabajo\POR PUBLICAR")
-                    edit=arcpy.da.Editor("D:\ArcGisTrabajo\POR PUBLICAR\{}.shp".format(prueba.fileArboles))
-                    edit.startEditing(False,True)
-                    edit.startOperation()'''
-                    pp,np=prueba.getSeleccion()
-                    prueba.runProg=True
-                    prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
-                    prueba.setNroLine(pp[0][0],0,2)
-                    prueba.setNroLine(pp[1][0],0,0)
-                    prueba.busquedaLineal()
-                    prueba.runProg=True
-                    prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
-                    prueba.colocarPunto(pp[0][1],pp[1][1])
-                    ppp,pn=prueba.getSeleccion2()
-                    if pp[0][0]==ppp[0][0]:
-                        prueba.setNroLine(ppp[0][0],0,0)
-                        prueba.setNroLine(ppp[1][0],0,2)
-                    else:
-                        prueba.setNroLine(ppp[1][0],0,0)
-                        prueba.setNroLine(ppp[0][0],0,2)
-                    prueba.busquedaLineal()
-                    prueba.colocarPunto(ppp[0][1],ppp[1][1])
-                    prueba.runPara=True
-                    prueba.busquedaParalela(0)
-                    #edit.stopOperation()
-                    #edit.stopEditing(True)
-            except Exception as ex:
-                pythonaddins.MessageBox (ex, "Error") 
-                self.runpp=False   
-        else:
-            pythonaddins.MessageBox ("Primero Elija el numero de linea", "Error")
-class ButtonLlenarCampo(object):
-    """Implementation for nuevaLinea_addin.activar (Button)"""
-    def __init__(self):
-        self.enabled = False
-        self.checked = False
-    def onClick(self):
-        prueba.maxNroLine()
+def onPruebaR():
+    prueba.runProg=True
+    prueba.maxNroLine()
+    pp,p=prueba.getSeleccion()
+    prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+    prueba.angulo=prueba.getAngulo(pp[0][1],pp[1][1])    
+    prueba.setNroLine(pp[0][0],prueba.nrLinea,2)
+    prueba.setNroLine(pp[1][0],prueba.nrLinea,1)
+    prueba.agregarPunto(pp[0][1])
+    prueba.busquedaLineal2()
+def onClick():
+    runpp=True
+    prueba.maxNroLine()
+    if(prueba.nrLinea!=0):
         try:
-            prueba.completarCampos()
-        except:
-            pythonaddins.MessageBox ("Creado el campo necesario", "Error al crear")
-
-class ButtonActivar(object):
-    """Implementation for nuevaLinea_addin.activar (Button)"""
-    def __init__(self):
-        self.enabled = True
-        self.checked = False
-    def onClick(self):
-        if capaArbol.target!="" and capaDesechos.target!="" and capaNoCultivable.target!="" and capaCamino.target!="" and capaAuxiliar.target!="":
-            selecPunto.enabled=True
-            descartivar.enabled=True
-            ejecutar.enabled=True
-            llenarCampo.enabled=True
-            ejecucion=True
-            puntos=[]
-        else:
-            pythonaddins.MessageBox("Seleccione las capas de trabajo","Error")
-            selecPunto.enabled=False
-        
-
-class ButtonDesactivar(object):
-    """Implementation for nuevaLinea_addin.descartivar (Button)"""
-    def __init__(self):
-        self.enabled = False
-        self.checked = False
-    def onClick(self):
-        selecPunto.enabled=False
-        
-class ButtonClearAuxiliar(object):
-    def __init__(self):
-        self.enabled=True
-        self.checked=False
-        self.filename=""
-    def onClick(self): 
-        arcpy.DeleteFeatures_management(capaAuxiliar.target);
-        '''directorio = pythonaddins.OpenDialog(r"c://", filter=MyValidator())
-        print(directorio)
-        arcpy.env.workspace=os.path.dirname(directorio)
-        self.filename=os.path.basename(directorio)'''
-
-class SelectPunto(object):
-    """Implementation for nuevaLinea_addin.selecPunto (Tool)"""
-    def __init__(self):
-        self.enabled = False
-        self.shape = "Rectangle" #  "Line", "Circle" or "Rectangle"
-        self.cont=0
-    def onMouseDown(self, x, y, button, shift):
-        pass
-    def onMouseDownMap(self, x, y, button, shift):
-        filenm=capaAuxiliar.target
-        if(filenm!=""):
-            with arcpy.da.InsertCursor(filenm,"SHAPE@XY") as cursor:
-                cursor.insertRow([(x,y)])
-                puntos.append((x,y))
-                self.cont+=1
-            del cursor
-            arcpy.RefreshActiveView()
-            if(self.cont==2):
-                #busqueda.runProg=True
-                self.enabled=False
-                self.cont=0
-        else:
-            pythonaddins.MessageBox ("Intente nuevamente \n Seleccione el shapefile", "Error")
-    def onMouseUp(self, x, y, button, shift):
-        pass
-    def onMouseUpMap(self, x, y, button, shift):
-        pass
-    def onMouseMove(self, x, y, button, shift):
-        pass
-    def onMouseMoveMap(self, x, y, button, shift):
-        pass
-    def onDblClick(self):
-        pass
-    def onKeyDown(self, keycode, shift):
-        pass
-    def onKeyUp(self, keycode, shift):
-        pass
-    def deactivate(self):
-        pass
-    def onCircle(self, circle_geometry):
-        pass
-    def onLine(self, line_geometry):
-        pass
-    def onRectangle(self, rectangle_geometry):
-        pass
+            while runpp:
+                #arcpy.env.workspace=os.path.dirname("D:\ArcGisTrabajo\POR PUBLICAR")
+                #edit=arcpy.da.Editor(os.path.dirname("D:\ArcGisTrabajo\POR PUBLICAR\{}.shp".format(prueba.fileArboles)))
+                #edit.startEditing(False,True)
+                #edit.startOperation()
+                pp,np=prueba.getSeleccion()
+                prueba.runProg=True
+                prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+                prueba.setNroLine(pp[0][0],prueba.nrLinea,3)
+                prueba.setNroLine(pp[1][0],prueba.nrLinea,2)
+                prueba.angulo=prueba.getAngulo(pp[0][1],pp[1][1])
+                prueba.punto1=pp[0]
+                prueba.punto2=pp[1]
+                print("p1:{}  p2:{}".format(prueba.punto1,prueba.punto2))
+                prueba.agregarPunto(pp[1][1])
+                #time.sleep(10)
+                print("entramos busqueda")
+                prueba.busquedaLineal2()
+                """#busquedaIzquierda
+                prueba.runProg=True
+                prueba.distancia=prueba.getDistancia(pp[0][1],pp[1][1])
+                prueba.colocarPunto(pp[0][1],pp[1][1])
+                prueba.setNroLine(pp[0][0],prueba.nrLinea,1)
+                prueba.punto1=pp[1]
+                prueba.punto2=pp[0]
+                prueba.busquedaLineal2()"""
+                #edit.stopOperation()
+                #edit.stopEditing(True)
+        except Exception as ex:
+            pythonaddins.MessageBox (ex, "Error") 
+            runpp=False

@@ -1,0 +1,12 @@
+<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Name>LineaMause</Name><AddInID>{736bd602-9be8-4c14-8a21-0cb032a1002c}</AddInID><Description>Con ayuda del mause modifica el estado del campo nro_linea</Description><Version>0.1</Version><Image /><Author>Juan Jose Sanchez</Author><Company>civis</Company><Date>03/07/2022</Date><Targets><Target name="Desktop" version="10.1" /></Targets><AddIn language="PYTHON" library="genLineaMause_addin.py" namespace="genLineaMause_addin"><ArcMap>
+    <Commands>
+        <Tool caption="ToolLineMause" category="LineaMause" class="ToolLineMause" id="genLineaMause_addin.tool" image="" message="" tip=""><Help heading="" /></Tool>
+        </Commands>
+    <Extensions>
+        </Extensions>
+    <Toolbars>
+        <Toolbar caption="ToolsLineaMause" category="LineaMause" id="genLineaMause_addin.toolbar" showInitially="true"><Items><Tool refID="genLineaMause_addin.tool" /></Items></Toolbar>
+        </Toolbars>
+    <Menus>
+        </Menus>
+    </ArcMap></AddIn></ESRI.Configuration>
