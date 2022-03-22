@@ -78,21 +78,29 @@ class SeleccionPoligonal(object):
             else:
                 self.beta=self.getAngulo(listaPuntos[1][1],listaPuntos[0][1])
             print("Datos de origen son d :{} a :{} b:{}".format(self.distancia,self.alfa,self.beta))
-    def getPuntoSugerido(self,p,angulo):
-        xa=p[0]+self.distancia*math.cos(angulo)
-        ya=p[1]+self.distancia*math.sin(angulo)
+    def getPuntoSugerido(self,p,angulo,distancia):
+        xa=p[0]+distancia*math.cos(angulo)
+        ya=p[1]+distancia*math.sin(angulo)
         return(xa,ya)
     def agregarPunto(self,punto):
         arcpy.DeleteFeatures_management(self.fileAuxi)
         with arcpy.da.InsertCursor(self.fileAuxi,"SHAPE@XY") as cursor:
             cursor.insertRow([punto])
         arcpy.RefreshActiveView()
+    def modificarPunto(self,punto):
+        with arcpy.da.UpdateCursor(self.fileAuxi,"SHAPE@XY") as cursor:
+            for row in cursor:
+                row[0]=(punto[0],punto[1])
+                cursor.updateRow(row)
+        del(cursor)
+        arcpy.RefreshActiveView()
     def busquedaLineal(self):
         n=0
+        d=self.distancia
         #self.maxNroLine()
-        puntos=self.getSeleccion()
         while n<20:
-            if len(puntos)>=3:
+            puntos=self.getSeleccion()
+            if len(puntos)>=2:
                 cont=0
                 for i in puntos:
                     print(cont)
@@ -105,32 +113,39 @@ class SeleccionPoligonal(object):
                             if abs(a-self.alfa)<1.2:
                                 self.puntoPivot=i[1]
                                 self.setNroLine(i[0],self.nroLinea,1)
-                                self.alfa=a
                                 if len(puntos)-1==cont:
-                                    newP=self.getPuntoSugerido(i[1],self.alfa)
+                                    newP=self.getPuntoSugerido(i[1],self.alfa,self.distancia)
                                     print("punto nuevo {}".format(newP))
-                                    self.agregarPunto(newP)
-                                    self.ultimoAngulo=a
+                                    self.modificarPunto(newP)
+                                    if abs(a-self.alfa)<0.6:
+                                        self.alfa=a
+                                        self.ultimoAngulo=a
+                                    else:
+                                        self.ultimoAngulo=self.alfa
                         else:
                             if abs(a-self.beta)<1.2:
                                 self.puntoPivot=i[1]
-                                self.beta=a
                                 self.setNroLine(i[0],self.nroLinea,1)
                                 if len(puntos)-1==cont:
-                                    newP=self.getPuntoSugerido(i[1],self.beta)
+                                    newP=self.getPuntoSugerido(i[1],self.beta,self.distancia)
                                     print("punto nuevo {}".format(newP))
-                                    self.agregarPunto(newP)
-                                    self.ultimoAngulo=a
+                                    self.modificarPunto(newP)
+                                    if abs(a-self.beta)<0.6:
+                                        self.beta=a
+                                        self.ultimoAngulo=a
+                                    else:
+                                        self.ultimoAngulo=self.beta
                     cont=cont+1
             elif len(puntos)==1:
                 self.setNroLine(puntos[0][0],self.nroLinea,1)
                 self.puntoPivot=puntos[0][1]
                 self.ultimoAngulo=self.getAngulo(self.puntoPivot,puntos[0][1])
-                newP=self.getPuntoSugerido(self.puntoPivot,self.ultimoAngulo)
-                self.agregarPunto(newP)
+                newP=self.getPuntoSugerido(self.puntoPivot,self.ultimoAngulo,self.distancia)
+                self.modificarPunto(newP)
             elif len(puntos)==0:
-                newP=self.getPuntoSugerido(self.puntoPivot,self.ultimoAngulo)
-                self.agregarPunto(newP)
+                d=d+0.3
+                newP=self.getPuntoSugerido(self.puntoPivot,self.ultimoAngulo,d)
+                self.modificarPunto(newP)
                 self.puntoPivot=newP
             n+=1
     
